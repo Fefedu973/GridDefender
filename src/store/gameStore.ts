@@ -8,6 +8,7 @@ import {
   createInitialGameState,
 } from "@/game/engine/simulation";
 import type { GamePhase, GameState, PlayerActionType } from "@/game/types";
+import type { SelectedEntity } from "@/game/network/networkTypes";
 
 export interface LeaderboardEntry {
   id: string;
@@ -26,7 +27,9 @@ interface GameStore {
   speed: 1 | 2 | 4;
   selectedAssetId?: string;
   selectedJobId?: string;
+  selectedEntity?: SelectedEntity;
   leaderboard: LeaderboardEntry[];
+  tutorialSeen: boolean;
   startMission: () => void;
   resetMission: (autostart?: boolean) => void;
   tick: () => void;
@@ -37,11 +40,30 @@ interface GameStore {
   applyAction: (action: PlayerActionType) => void;
   selectAsset: (assetId?: string) => void;
   selectJob: (jobId?: string) => void;
+  selectEntity: (entity?: SelectedEntity) => void;
   hydrateLeaderboard: () => void;
   clearLeaderboard: () => void;
+  hydrateTutorial: () => void;
+  markTutorialSeen: () => void;
+  replayTutorial: () => void;
 }
 
 const leaderboardKey = "grid-defender-leaderboard";
+const tutorialKey = "grid-defender-tutorial-seen";
+
+function loadTutorialSeen(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(tutorialKey) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function persistTutorialSeen(seen: boolean) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(tutorialKey, seen ? "1" : "0");
+}
 
 function loadLeaderboard(): LeaderboardEntry[] {
   if (typeof window === "undefined") return [];
@@ -98,14 +120,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
   phase: initialGame.phase,
   speed: 1,
   leaderboard: [],
+  tutorialSeen: false,
   startMission: () => {
     const game = createInitialGameState(eveningPeakScenario);
     game.phase = "running";
     set({
       game,
       phase: "running",
-      selectedAssetId: "datacenter",
-      selectedJobId: "assistant-public",
+      selectedAssetId: undefined,
+      selectedJobId: undefined,
+      selectedEntity: undefined,
     });
   },
   resetMission: (autostart = false) => {
@@ -114,8 +138,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({
       game,
       phase: game.phase,
-      selectedAssetId: autostart ? "datacenter" : undefined,
-      selectedJobId: autostart ? "assistant-public" : undefined,
+      selectedAssetId: undefined,
+      selectedJobId: undefined,
+      selectedEntity: undefined,
     });
   },
   tick: () => {
@@ -153,11 +178,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const next = applyPlayerAction(game, action);
     set({ game: next, phase: next.phase });
   },
-  selectAsset: (assetId) => set({ selectedAssetId: assetId }),
-  selectJob: (jobId) => set({ selectedJobId: jobId }),
+  selectAsset: (assetId) =>
+    set({
+      selectedAssetId: assetId,
+      selectedEntity: assetId ? { kind: "node", id: assetId } : undefined,
+    }),
+  selectJob: (jobId) =>
+    set({
+      selectedJobId: jobId,
+      selectedEntity: jobId ? { kind: "workload", id: jobId } : undefined,
+    }),
+  selectEntity: (entity) => set({ selectedEntity: entity }),
   hydrateLeaderboard: () => set({ leaderboard: loadLeaderboard() }),
   clearLeaderboard: () => {
     persistLeaderboard([]);
     set({ leaderboard: [] });
+  },
+  hydrateTutorial: () => set({ tutorialSeen: loadTutorialSeen() }),
+  markTutorialSeen: () => {
+    persistTutorialSeen(true);
+    set({ tutorialSeen: true });
+  },
+  replayTutorial: () => {
+    persistTutorialSeen(false);
+    set({ tutorialSeen: false });
   },
 }));

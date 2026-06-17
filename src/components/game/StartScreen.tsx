@@ -1,125 +1,96 @@
 "use client";
 
-import { BatteryCharging, Play, ShieldCheck, Zap } from "lucide-react";
+import { Activity, BatteryCharging, BookOpen, Cpu, Play, ShieldCheck, Zap } from "lucide-react";
+import { FranceGridCanvas } from "@/features/map3d/FranceGridCanvas";
 import { useGameStore } from "@/store/gameStore";
 import { formatClock } from "@/lib/format";
 
 export function StartScreen() {
   const game = useGameStore((state) => state.game);
   const startMission = useGameStore((state) => state.startMission);
+  const replayTutorial = useGameStore((state) => state.replayTutorial);
   const hydrateLeaderboard = useGameStore((state) => state.hydrateLeaderboard);
+  const leaderboard = useGameStore((state) => state.leaderboard);
+  const best = leaderboard[0];
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#05070a] text-white">
-      <div className="absolute inset-0 grid-bg opacity-70" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(34,211,238,0.2),transparent_34%),linear-gradient(180deg,rgba(5,7,10,0.2),#05070a_82%)]" />
+    <main className="relative h-screen w-screen overflow-hidden bg-[#030a10] text-white">
+      {/* Live 3D backdrop */}
+      <FranceGridCanvas />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(2,8,12,0.92)_0%,rgba(2,8,12,0.55)_45%,transparent_72%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(2,8,12,0.85)_100%)]" />
 
-      <section className="relative z-10 mx-auto grid min-h-screen max-w-[1440px] items-center gap-8 px-5 py-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(520px,1.1fr)]">
-        <div className="max-w-2xl">
-          <p className="mb-3 text-sm font-semibold uppercase text-cyan-200">Serious game energie x IA</p>
-          <h1 className="text-5xl font-semibold leading-[1.02] text-white md:text-7xl">
-            Grid Defender
-          </h1>
-          <p className="mt-4 max-w-xl text-xl leading-8 text-zinc-300">
-            Defendez le reseau. Gardez l&apos;IA en ligne. Evitez le blackout.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onMouseEnter={hydrateLeaderboard}
-              onClick={startMission}
-              className="inline-flex h-12 items-center gap-2 rounded-[6px] bg-cyan-300 px-5 text-sm font-bold text-black transition hover:bg-cyan-200"
-            >
-              <Play className="h-4 w-4" aria-hidden="true" />
-              Lancer demo 3 minutes
-            </button>
-            <div className="inline-flex h-12 items-center gap-2 rounded-[6px] border border-white/10 bg-white/[0.05] px-4 text-sm text-zinc-300">
-              <ShieldCheck className="h-4 w-4 text-emerald-300" aria-hidden="true" />
-              Mission {formatClock(game.scenario.startMinute)}-{formatClock(game.scenario.endMinute)}
-            </div>
-          </div>
-
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-[6px] border border-white/10 bg-white/[0.05] p-4">
-              <Zap className="mb-3 h-5 w-5 text-emerald-300" aria-hidden="true" />
-              <p className="text-sm font-semibold">Stabilite</p>
-              <p className="mt-1 text-xs leading-5 text-zinc-400">Equilibrer production et demande a chaque tick.</p>
-            </div>
-            <div className="rounded-[6px] border border-white/10 bg-white/[0.05] p-4">
-              <BatteryCharging className="mb-3 h-5 w-5 text-violet-300" aria-hidden="true" />
-              <p className="text-sm font-semibold">Flexibilite</p>
-              <p className="mt-1 text-xs leading-5 text-zinc-400">Utiliser batteries, EV smart et reports IA.</p>
-            </div>
-            <div className="rounded-[6px] border border-white/10 bg-white/[0.05] p-4">
-              <ShieldCheck className="mb-3 h-5 w-5 text-cyan-300" aria-hidden="true" />
-              <p className="text-sm font-semibold">Souverainete</p>
-              <p className="mt-1 text-xs leading-5 text-zinc-400">Proteger les jobs IA critiques et locaux.</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="relative min-h-[520px] overflow-hidden border border-cyan-300/20 bg-black/30 shadow-[0_0_80px_rgba(34,211,238,0.16)]">
-          <svg viewBox="0 0 100 100" className="h-full min-h-[520px] w-full" role="img" aria-label="Apercu du reseau Grid Defender">
-            <defs>
-              <filter id="startGlow">
-                <feGaussianBlur stdDeviation="1.4" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-            <g stroke="#155e75" strokeWidth="0.25" opacity="0.5">
-              {Array.from({ length: 12 }).map((_, index) => (
-                <line key={`v-${index}`} x1={8 + index * 8} y1="8" x2={8 + index * 8} y2="92" />
-              ))}
-              {Array.from({ length: 9 }).map((_, index) => (
-                <line key={`h-${index}`} x1="8" y1={12 + index * 9} x2="92" y2={12 + index * 9} />
-              ))}
-            </g>
-            {[
-              [20, 28, 50, 52, "#86efac"],
-              [32, 78, 50, 52, "#86efac"],
-              [72, 28, 50, 52, "#22d3ee"],
-              [82, 66, 50, 52, "#fb7185"],
-              [68, 82, 50, 52, "#fbbf24"],
-            ].map(([x1, y1, x2, y2, color], index) => (
-              <line
-                key={index}
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke={String(color)}
-                strokeWidth="1.1"
-                strokeDasharray="3 5"
-                className="energy-flow"
-              />
-            ))}
-            <circle cx="50" cy="52" r="8" fill="#06232b" stroke="#67e8f9" strokeWidth="1.2" filter="url(#startGlow)" />
-            <text x="50" y="53" textAnchor="middle" className="fill-white text-[4px] font-bold">
+      <div className="pointer-events-none absolute inset-0 flex items-center">
+        <section className="pointer-events-auto ml-[6vw] max-w-[560px]">
+          <div className="hud-rise">
+            <p className="flex items-center gap-2 hud-eyebrow text-[var(--c-cyan-bright)]">
+              <span className="grid h-7 w-7 place-items-center rounded border border-[var(--c-cyan)]/40 bg-[var(--c-cyan)]/10">
+                <Activity className="h-4 w-4" />
+              </span>
+              Serious game · Énergie × IA
+            </p>
+            <h1 className="hud-title mt-4 text-6xl leading-[0.95] text-white md:text-7xl">
               GRID
-            </text>
-            {[
-              [20, 28, "NUC", "#86efac"],
-              [32, 78, "BAT", "#a78bfa"],
-              [72, 28, "AI", "#22d3ee"],
-              [82, 66, "H", "#fb7185"],
-              [68, 82, "EV", "#fbbf24"],
-            ].map(([x, y, label, color]) => (
-              <g key={String(label)} filter="url(#startGlow)">
-                <circle cx={Number(x)} cy={Number(y)} r="6" fill="#071016" stroke={String(color)} strokeWidth="1" />
-                <text x={Number(x)} y={Number(y) + 1.3} textAnchor="middle" className="fill-white text-[4px] font-bold">
-                  {label}
-                </text>
-              </g>
-            ))}
-            <text x="10" y="94" className="fill-cyan-100 text-[3.3px] font-semibold">
-              Mission: orchestrer les charges IA pendant le pic du soir
-            </text>
-          </svg>
-        </div>
-      </section>
+              <br />
+              DEFENDER
+            </h1>
+            <p className="mt-3 hud-eyebrow text-base tracking-[0.3em] text-[var(--c-green)]">AI LOAD CONTROL</p>
+            <p className="mt-5 max-w-md text-lg leading-7 text-zinc-300">
+              Défendez le réseau électrique français pendant le pic du soir. Orchestrez les charges IA, gardez les
+              services critiques en ligne, évitez le blackout.
+            </p>
+
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onMouseEnter={hydrateLeaderboard}
+                onClick={startMission}
+                className="group inline-flex h-12 items-center gap-2.5 rounded-md bg-[var(--c-cyan)] px-6 py-3.5 text-sm font-bold uppercase tracking-wide text-black transition hover:bg-[var(--c-cyan-bright)] hover:shadow-[0_0_30px_rgba(34,211,238,0.5)]"
+              >
+                <Play className="h-4 w-4 transition group-hover:scale-110" />
+                Lancer la mission
+              </button>
+              <div className="glass inline-flex h-12 items-center gap-2 rounded-md px-4 py-3 text-sm text-zinc-300">
+                <ShieldCheck className="h-4 w-4 text-[var(--c-green)]" />
+                {game.scenario.name} · {formatClock(game.scenario.startMinute)}–{formatClock(game.scenario.endMinute)}
+              </div>
+              <button
+                type="button"
+                onClick={replayTutorial}
+                className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--glass-border-soft)] bg-white/[0.03] px-4 text-sm font-semibold text-[var(--c-muted)] transition hover:border-white/30 hover:text-white"
+              >
+                <BookOpen className="h-4 w-4" /> Revoir l’intro
+              </button>
+            </div>
+
+            <div className="mt-7 grid max-w-md gap-2.5 sm:grid-cols-3">
+              <Feature icon={<Zap className="h-4 w-4 text-[var(--c-green)]" />} title="Stabilité" body="Équilibrer offre et demande en temps réel." />
+              <Feature icon={<BatteryCharging className="h-4 w-4 text-[var(--c-violet)]" />} title="Flexibilité" body="Batteries, EV smart, report des jobs IA." />
+              <Feature icon={<Cpu className="h-4 w-4 text-[var(--c-cyan-bright)]" />} title="Souveraineté" body="Protéger l’IA critique et locale." />
+            </div>
+
+            {best && (
+              <p className="mt-6 text-xs text-[var(--c-muted)]">
+                Meilleur score local : <span className="hud-num text-[var(--c-cyan-bright)]">{Math.round(best.score)}</span> · {best.badge}
+              </p>
+            )}
+          </div>
+        </section>
+      </div>
+
+      <p className="pointer-events-none absolute bottom-4 right-5 hud-eyebrow text-[var(--c-muted)]/60">
+        Faites glisser pour explorer la carte
+      </p>
     </main>
+  );
+}
+
+function Feature({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
+  return (
+    <div className="glass rounded-md p-3">
+      <div className="mb-1.5">{icon}</div>
+      <p className="hud-title text-sm text-white">{title}</p>
+      <p className="mt-0.5 text-[11px] leading-4 text-[var(--c-muted)]">{body}</p>
+    </div>
   );
 }
