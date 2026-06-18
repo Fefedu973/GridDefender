@@ -74,9 +74,9 @@ export function BarGauge({
           <span className="ml-0.5 text-[10px] opacity-70">{unit}</span>
         </span>
       </div>
-      <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+      <div className="mt-1.5 h-1.5 w-full rounded-full bg-white/[0.06]">
         <div
-          className="h-full rounded-full transition-[width] duration-500"
+          className="h-full rounded-full transition-[width] duration-1000 ease-out"
           style={{ width: `${pct}%`, background: c, boxShadow: `0 0 10px ${c}` }}
         />
       </div>
@@ -106,7 +106,7 @@ export function RadialGauge({
   return (
     <div className="flex flex-col items-center">
       <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} className="-rotate-90">
+        <svg width={size} height={size} className="-rotate-90 overflow-visible">
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={6} />
           <circle
             cx={size / 2}
@@ -117,7 +117,7 @@ export function RadialGauge({
             strokeWidth={6}
             strokeLinecap="round"
             strokeDasharray={`${dash} ${circ}`}
-            style={{ filter: `drop-shadow(0 0 6px ${c})`, transition: "stroke-dasharray 0.6s ease" }}
+            style={{ filter: `drop-shadow(0 0 6px ${c})`, transition: "stroke-dasharray 1s ease-out" }}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">

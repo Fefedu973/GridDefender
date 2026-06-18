@@ -18,7 +18,7 @@ export function MetricRail() {
           </div>
           <div>
             <p className="hud-eyebrow text-[var(--c-muted)]">Demande</p>
-            <p className="hud-num text-lg text-[var(--c-amber)]">{Math.round(m.demandMw)} MW</p>
+            <p className="hud-num text-lg text-[var(--c-demand)]">{Math.round(m.demandMw)} MW</p>
           </div>
           <div>
             <p className="hud-eyebrow text-[var(--c-muted)]">Charge IA</p>

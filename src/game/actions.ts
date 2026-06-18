@@ -6,7 +6,7 @@ export const actionDefinitions: ActionDefinition[] = [
     label: "Recharge EV intelligente",
     shortLabel: "EV smart",
     target: "Bornes EV",
-    description: "Lisse la recharge des vehicules pendant 60 minutes.",
+    description: "Lisse la recharge des vehicules pendant 80 minutes.",
     expectedImpact: "Baisse le pic immediat, avec une legere friction publique.",
   },
   {

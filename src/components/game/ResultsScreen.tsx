@@ -1,6 +1,8 @@
 "use client";
 
-import { Award, Medal, RotateCcw, Trophy } from "lucide-react";
+import confetti from "canvas-confetti";
+import { Award, RotateCcw, Trophy } from "lucide-react";
+import { useEffect } from "react";
 import {
   Area,
   AreaChart,
@@ -22,6 +24,101 @@ const tooltipStyle = {
   fontSize: 12,
 };
 
+const confettiColors = ["#34f5b0", "#22d3ee", "#7df9ff", "#ffd447", "#ff6b5f", "#a78bfa"];
+
+function randomInRange(min: number, max: number) {
+  return Math.random() * (max - min) + min;
+}
+
+function VictoryConfetti() {
+  useEffect(() => {
+    const duration = 8200;
+    const end = Date.now() + duration;
+    const defaults: confetti.Options = {
+      colors: confettiColors,
+      decay: 0.92,
+      disableForReducedMotion: true,
+      flat: false,
+      gravity: 0.78,
+      scalar: 1.18,
+      shapes: ["square", "circle"],
+      ticks: 420,
+      zIndex: 2147483647,
+    };
+    const fire = (options: confetti.Options) => confetti({ ...defaults, ...options });
+
+    fire({
+      angle: 62,
+      drift: 0.1,
+      particleCount: 95,
+      scalar: 1.22,
+      spread: 48,
+      startVelocity: 58,
+      origin: { x: 0.02, y: 0.82 },
+    });
+    fire({
+      angle: 118,
+      drift: -0.1,
+      particleCount: 95,
+      scalar: 1.22,
+      spread: 48,
+      startVelocity: 58,
+      origin: { x: 0.98, y: 0.82 },
+    });
+    fire({
+      gravity: 0.58,
+      particleCount: 80,
+      scalar: 1.35,
+      shapes: ["star", "circle"],
+      spread: 92,
+      startVelocity: 34,
+      origin: { x: 0.5, y: 0.1 },
+    });
+
+    const interval = window.setInterval(() => {
+      const timeLeft = end - Date.now();
+      if (timeLeft <= 0) {
+        window.clearInterval(interval);
+        return;
+      }
+
+      const intensity = timeLeft / duration;
+      const particleCount = Math.max(8, Math.round(30 * intensity));
+
+      fire({
+        angle: 90,
+        drift: randomInRange(-0.18, 0.18),
+        gravity: randomInRange(0.65, 0.9),
+        origin: { x: randomInRange(0.08, 0.92), y: randomInRange(-0.08, 0.08) },
+        particleCount,
+        scalar: randomInRange(0.95, 1.45),
+        spread: randomInRange(55, 95),
+        startVelocity: randomInRange(18, 34),
+      });
+
+      if (Math.random() > 0.62) {
+        const fromLeft = Math.random() > 0.5;
+        fire({
+          angle: fromLeft ? randomInRange(52, 68) : randomInRange(112, 128),
+          drift: fromLeft ? 0.12 : -0.12,
+          origin: { x: fromLeft ? 0.01 : 0.99, y: randomInRange(0.58, 0.86) },
+          particleCount: Math.max(5, Math.round(14 * intensity)),
+          scalar: randomInRange(1, 1.35),
+          spread: 42,
+          startVelocity: randomInRange(42, 56),
+        });
+      }
+    }, 300);
+
+    return () => {
+      window.clearInterval(interval);
+      confetti.reset();
+    };
+  }, []);
+
+  return null;
+}
+
 export function ResultsScreen() {
   const game = useGameStore((state) => state.game);
   const timeline = useGameStore((state) => state.game.timeline);
@@ -41,6 +138,7 @@ export function ResultsScreen() {
     <main className="relative min-h-screen w-screen overflow-x-hidden bg-[#030a10] text-white">
       <div className="grid-bg pointer-events-none fixed inset-0 opacity-40" />
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,rgba(34,211,238,0.12),transparent_45%)]" />
+      {victory && <VictoryConfetti />}
 
       <div className="relative z-10 mx-auto max-w-[1320px] space-y-4 px-4 py-6">
         {/* Hero */}
@@ -84,7 +182,7 @@ export function ResultsScreen() {
                     <YAxis stroke="#5b7079" fontSize={11} width={32} />
                     <Tooltip contentStyle={tooltipStyle} />
                     <Area type="monotone" dataKey="productionMw" name="Prod MW" stroke="#34f5b0" fill="#34f5b0" fillOpacity={0.16} strokeWidth={2} />
-                    <Area type="monotone" dataKey="demandMw" name="Dem MW" stroke="#ffd447" fill="#ffd447" fillOpacity={0.1} strokeWidth={2} />
+                    <Area type="monotone" dataKey="demandMw" name="Dem MW" stroke="#ff6b5f" fill="#ff6b5f" fillOpacity={0.1} strokeWidth={2} />
                     <Area type="monotone" dataKey="aiLoadMw" name="IA MW" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.08} strokeWidth={2} />
                   </AreaChart>
                 </ResponsiveContainer>

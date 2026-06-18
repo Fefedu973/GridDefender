@@ -1,7 +1,7 @@
 "use client";
 
 import type { FranceGridSnapshot } from "@/game/network/networkTypes";
-import { TransmissionLine } from "@/features/map3d/scene/TransmissionLine";
+import { MemoTransmissionLine } from "@/features/map3d/scene/TransmissionLine";
 
 interface TransmissionNetworkProps {
   snapshot: FranceGridSnapshot;
@@ -18,7 +18,7 @@ export function TransmissionNetwork({ snapshot, selectedLineId, onSelectLine }: 
         if (!fromNode || !toNode) return null;
 
         return (
-          <TransmissionLine
+          <MemoTransmissionLine
             key={line.id}
             line={line}
             fromNode={fromNode}

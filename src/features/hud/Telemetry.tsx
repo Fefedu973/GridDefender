@@ -37,7 +37,7 @@ function Charts() {
             <YAxis stroke="#5b7079" fontSize={10} width={30} />
             <Tooltip contentStyle={tooltipStyle} />
             <Area type="monotone" dataKey="productionMw" name="Prod MW" stroke="#34f5b0" fill="#34f5b0" fillOpacity={0.16} strokeWidth={2} />
-            <Area type="monotone" dataKey="demandMw" name="Dem MW" stroke="#ffd447" fill="#ffd447" fillOpacity={0.1} strokeWidth={2} />
+            <Area type="monotone" dataKey="demandMw" name="Dem MW" stroke="#ff6b5f" fill="#ff6b5f" fillOpacity={0.1} strokeWidth={2} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -108,9 +108,9 @@ export function Telemetry() {
   const [tab, setTab] = useState<"charts" | "journal">("charts");
 
   return (
-    <div className="pointer-events-auto flex flex-col items-end gap-2">
+    <div className="pointer-events-auto flex flex-col items-end">
       {open && (
-        <div className="glass-strong brackets hud-rise w-[640px] max-w-[88vw] rounded-md">
+        <div className="glass-strong brackets hud-rise mb-2 w-[640px] max-w-[88vw] rounded-md">
           <div className="flex items-center justify-between border-b border-[var(--glass-border-soft)] px-3 py-2">
             <div className="flex gap-1">
               <button
@@ -139,7 +139,12 @@ export function Telemetry() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="glass-strong flex items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold text-white transition hover:border-[var(--c-cyan)]/50"
+        aria-expanded={open}
+        className={`flex items-center gap-2 rounded-t-md border border-b-0 px-3 py-2 text-xs font-semibold transition ${
+          open
+            ? "border-[var(--c-cyan)]/45 bg-[rgba(5,14,19,0.94)] text-white"
+            : "border-[var(--glass-border)] bg-[rgba(5,14,19,0.8)] text-zinc-200 hover:border-[var(--c-cyan)]/50 hover:text-white"
+        }`}
       >
         <BarChart3 className="h-4 w-4 text-[var(--c-cyan-bright)]" />
         Télémétrie

@@ -24,12 +24,14 @@ export function FlowParticles({ curve, count, speed, status }: FlowParticlesProp
     groupRef.current.children.forEach((child, index) => {
       const t = (elapsed + offsets[index]) % 1;
       const point = curve.getPoint(t);
+      const next = curve.getPoint((t + 0.012) % 1);
       child.position.copy(point);
-      // Fade particles in at the start and out near the end for a "pulse" feel.
+      child.lookAt(next);
+      // Short, restrained pulses keep the line readable as infrastructure first.
       const fade = Math.sin(t * Math.PI);
       const mesh = child as THREE.Mesh;
-      (mesh.material as THREE.MeshBasicMaterial).opacity = 0.35 + fade * 0.55;
-      mesh.scale.setScalar(0.7 + fade * 0.6);
+      (mesh.material as THREE.MeshBasicMaterial).opacity = 0.15 + fade * 0.42;
+      mesh.scale.setScalar(0.72 + fade * 0.35);
     });
   });
 
@@ -37,8 +39,8 @@ export function FlowParticles({ curve, count, speed, status }: FlowParticlesProp
     <group ref={groupRef}>
       {offsets.map((offset) => (
         <mesh key={offset}>
-          <sphereGeometry args={[0.04, 8, 8]} />
-          <meshBasicMaterial color={color} transparent opacity={0.8} blending={THREE.AdditiveBlending} depthWrite={false} />
+          <boxGeometry args={[0.018, 0.018, 0.07]} />
+          <meshBasicMaterial color={color} transparent opacity={0.48} blending={THREE.AdditiveBlending} depthWrite={false} />
         </mesh>
       ))}
     </group>

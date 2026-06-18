@@ -19,7 +19,9 @@ export function GameShell() {
   useEffect(() => {
     hydrateLeaderboard();
     hydrateTutorial();
-    setMounted(true);
+
+    const timeoutId = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [hydrateLeaderboard, hydrateTutorial]);
 
   useEffect(() => {

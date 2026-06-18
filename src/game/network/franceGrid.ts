@@ -3,15 +3,21 @@ import type { FranceGridSnapshot, GridNode, GridNodeStatus, TransmissionLine, Tr
 import { projectLonLat } from "@/features/map3d/geo/franceGeo";
 import { clamp, round } from "@/lib/math";
 
-// Small deterministic nudges (in world units) so geographically-coincident nodes
-// stay legible: Lyon industry vs Rhone plant, Paris datacenter vs IDF hospital.
+// Small deterministic nudges (in world units) keep dense regions legible while
+// preserving their real geography: IDF, Centre and Rhone-Alpes otherwise stack.
 const NODE_OFFSETS: Record<string, [number, number]> = {
-  "paris-saclay-ai": [-0.32, 0.16],
-  "idf-hospital": [0.42, -0.05],
-  "interconnect-north": [0.3, -0.18],
-  "rhone-production": [-0.42, -0.12],
-  "lyon-industry": [0.28, 0.24],
-  "grenoble-ai-edge": [0.24, 0.18],
+  "normandy-production": [-0.18, -0.04],
+  "paris-saclay-ai": [-0.46, 0.22],
+  "idf-hospital": [0.36, -0.13],
+  "interconnect-north": [0.42, -0.22],
+  "atlantic-wind": [-0.16, -0.04],
+  "bordeaux-ev": [-0.06, 0.08],
+  "southwest-solar": [0.22, 0.18],
+  "centre-battery": [0.05, -0.08],
+  "rhone-production": [-0.62, -0.2],
+  "lyon-industry": [0.05, 0.32],
+  "grenoble-ai-edge": [0.45, 0.42],
+  "marseille-load": [0.12, 0.06],
 };
 
 function nodeWorldPosition(node: GridNode): [number, number, number] {
@@ -25,6 +31,8 @@ const baseNodes: GridNode[] = [
     id: "normandy-production",
     label: "Normandie",
     kind: "nuclear",
+    role: "producer",
+    labelMode: "always",
     region: "Normandie",
     lat: 49.4,
     lon: 0.2,
@@ -44,6 +52,8 @@ const baseNodes: GridNode[] = [
     id: "paris-saclay-ai",
     label: "Paris-Saclay IA",
     kind: "datacenter",
+    role: "consumer",
+    labelMode: "always",
     region: "Ile-de-France",
     lat: 48.7,
     lon: 2.1,
@@ -63,6 +73,8 @@ const baseNodes: GridNode[] = [
     id: "idf-hospital",
     label: "Hopital IDF",
     kind: "hospital",
+    role: "consumer",
+    labelMode: "always",
     region: "Ile-de-France",
     lat: 48.85,
     lon: 2.35,
@@ -82,6 +94,8 @@ const baseNodes: GridNode[] = [
     id: "interconnect-north",
     label: "Interconnexion Nord",
     kind: "interconnect",
+    role: "connector",
+    labelMode: "always",
     region: "Nord",
     lat: 50.5,
     lon: 3.1,
@@ -101,6 +115,8 @@ const baseNodes: GridNode[] = [
     id: "atlantic-wind",
     label: "Eolien Atlantique",
     kind: "wind",
+    role: "producer",
+    labelMode: "always",
     region: "Atlantique",
     lat: 47.1,
     lon: -2.7,
@@ -120,6 +136,8 @@ const baseNodes: GridNode[] = [
     id: "bordeaux-ev",
     label: "Bordeaux EV",
     kind: "ev",
+    role: "consumer",
+    labelMode: "always",
     region: "Nouvelle-Aquitaine",
     lat: 44.84,
     lon: -0.58,
@@ -139,6 +157,8 @@ const baseNodes: GridNode[] = [
     id: "southwest-solar",
     label: "Solaire Sud-Ouest",
     kind: "solar",
+    role: "producer",
+    labelMode: "always",
     region: "Occitanie",
     lat: 43.6,
     lon: 1.44,
@@ -158,6 +178,8 @@ const baseNodes: GridNode[] = [
     id: "rhone-production",
     label: "Rhône Production",
     kind: "nuclear",
+    role: "producer",
+    labelMode: "always",
     region: "Auvergne-Rhône-Alpes",
     lat: 45.7,
     lon: 4.8,
@@ -169,7 +191,7 @@ const baseNodes: GridNode[] = [
     flexibilityMw: 12,
     criticality: "high",
     status: "stable",
-    connectedLineIds: ["paris-lyon", "solar-rhone", "lyon-marseille"],
+    connectedLineIds: ["paris-lyon", "solar-rhone", "lyon-marseille", "rhone-grenoble-edge"],
     aiWorkloadIds: [],
     description: "Production pilotable bas carbone du couloir Rhône.",
   },
@@ -177,6 +199,8 @@ const baseNodes: GridNode[] = [
     id: "lyon-industry",
     label: "Lyon Industrie",
     kind: "industry",
+    role: "consumer",
+    labelMode: "auto",
     region: "Auvergne-Rhône-Alpes",
     lat: 45.76,
     lon: 4.84,
@@ -196,6 +220,8 @@ const baseNodes: GridNode[] = [
     id: "marseille-load",
     label: "Marseille",
     kind: "city",
+    role: "consumer",
+    labelMode: "auto",
     region: "PACA",
     lat: 43.3,
     lon: 5.37,
@@ -213,11 +239,13 @@ const baseNodes: GridNode[] = [
   },
   {
     id: "centre-battery",
-    label: "Batterie Centre",
+    label: "Batterie Est",
     kind: "battery",
-    region: "Centre",
-    lat: 47.8,
-    lon: 1.9,
+    role: "storage",
+    labelMode: "always",
+    region: "Bourgogne-Franche-Comte",
+    lat: 47.24,
+    lon: 6.02,
     position: [0.15, 0.16, -0.65],
     productionMw: 0,
     demandMw: 0,
@@ -228,12 +256,14 @@ const baseNodes: GridNode[] = [
     status: "stable",
     connectedLineIds: ["paris-centre-battery", "bordeaux-centre", "centre-lyon", "atlantic-centre"],
     aiWorkloadIds: [],
-    description: "Réserve tactique. Très utile pour refroidir les lignes en surcharge.",
+    description: "Réserve tactique positionnee a l'est. Tres utile pour refroidir les lignes en surcharge.",
   },
   {
     id: "grenoble-ai-edge",
     label: "Grenoble IA Edge",
     kind: "datacenter",
+    role: "consumer",
+    labelMode: "always",
     region: "Alpes",
     lat: 45.18,
     lon: 5.72,
@@ -245,7 +275,7 @@ const baseNodes: GridNode[] = [
     flexibilityMw: 24,
     criticality: "medium",
     status: "stable",
-    connectedLineIds: ["centre-lyon", "lyon-marseille"],
+    connectedLineIds: ["rhone-grenoble-edge"],
     aiWorkloadIds: [],
     description: "Datacenter IA secondaire, utile pour déplacer des charges non critiques.",
   },
@@ -345,7 +375,7 @@ const lineSeeds: Array<Omit<TransmissionLine, "currentFlowMw" | "utilizationRati
   },
   {
     id: "bordeaux-centre",
-    label: "Bordeaux -> Batterie Centre",
+    label: "Bordeaux -> Batterie Est",
     fromNodeId: "bordeaux-ev",
     toNodeId: "centre-battery",
     voltageKv: 400,
@@ -358,7 +388,7 @@ const lineSeeds: Array<Omit<TransmissionLine, "currentFlowMw" | "utilizationRati
   },
   {
     id: "atlantic-centre",
-    label: "Atlantique -> Centre",
+    label: "Atlantique -> Batterie Est",
     fromNodeId: "atlantic-wind",
     toNodeId: "centre-battery",
     voltageKv: 225,
@@ -371,7 +401,7 @@ const lineSeeds: Array<Omit<TransmissionLine, "currentFlowMw" | "utilizationRati
   },
   {
     id: "paris-centre-battery",
-    label: "Batterie Centre -> Paris",
+    label: "Batterie Est -> Paris",
     fromNodeId: "centre-battery",
     toNodeId: "paris-saclay-ai",
     voltageKv: 400,
@@ -384,7 +414,7 @@ const lineSeeds: Array<Omit<TransmissionLine, "currentFlowMw" | "utilizationRati
   },
   {
     id: "centre-lyon",
-    label: "Centre -> Lyon",
+    label: "Batterie Est -> Lyon",
     fromNodeId: "centre-battery",
     toNodeId: "lyon-industry",
     voltageKv: 400,
@@ -421,10 +451,23 @@ const lineSeeds: Array<Omit<TransmissionLine, "currentFlowMw" | "utilizationRati
     incidentIds: ["solar-drop"],
     actions: ["thermal_backup", "discharge_battery"],
   },
+  {
+    id: "rhone-grenoble-edge",
+    label: "Rhône -> Grenoble IA Edge",
+    fromNodeId: "rhone-production",
+    toNodeId: "grenoble-ai-edge",
+    voltageKv: 225,
+    capacityMw: 72,
+    baseFlowMw: 20,
+    isControllable: true,
+    isCritical: false,
+    incidentIds: ["agent-loop"],
+    actions: ["defer_ai", "reduce_model", "activate_cache", "discharge_battery"],
+  },
 ];
 
 function hasEffect(state: GameState, action: PlayerActionType) {
-  return state.activeEffects.some((effect) => effect.action === action && effect.expiresAt > state.minute);
+  return state.activeEffects.some((effect) => effect.action === action && effect.expiresAt >= state.minute);
 }
 
 function lineStatus(utilizationRatio: number): TransmissionLineStatus {
@@ -448,6 +491,7 @@ function selectedLinePressure(state: GameState, lineId: string) {
   if (state.flags.solarDrop) pressure += lineId.includes("paris") || lineId.includes("lyon") || lineId.includes("solar") ? 20 : 8;
   if (state.flags.cyberPriority) pressure += lineId.includes("paris") ? 10 : 3;
   if (state.flags.agentLoop) pressure += lineId.includes("paris") ? 16 : 4;
+  if (state.flags.agentLoop && lineId.includes("grenoble")) pressure += 10;
 
   const videoActive = state.aiJobs.some((job) => job.id === "video-demo" && (job.status === "active" || job.status === "throttled"));
   if (videoActive) pressure += lineId === "normandy-paris" || lineId === "paris-centre-battery" ? 24 : 6;
@@ -459,6 +503,7 @@ function selectedLinePressure(state: GameState, lineId: string) {
   if (hasEffect(state, "discharge_battery")) pressure -= lineId.includes("centre") || lineId.includes("paris") ? 25 : 12;
   if (hasEffect(state, "import_energy")) pressure -= lineId === "normandy-paris" || lineId === "paris-lyon" ? 18 : 4;
   if (hasEffect(state, "thermal_backup")) pressure -= lineId.includes("lyon") || lineId.includes("marseille") ? 20 : 5;
+  if (hasEffect(state, "thermal_backup") && lineId.includes("grenoble")) pressure -= 10;
   if (state.aiJobs.some((job) => job.cached)) pressure -= lineId.includes("paris") ? 7 : 2;
 
   pressure += Math.max(0, -state.metrics.reserveMw) * 0.45;
@@ -476,7 +521,7 @@ function causesForLine(state: GameState, lineId: string) {
   }
   if (state.flags.solarDrop) causes.push("Chute solaire");
   if (state.flags.cyberPriority && lineId.includes("paris")) causes.push("Job cyber prioritaire");
-  if (state.flags.agentLoop && lineId.includes("paris")) causes.push("Agent IA en boucle");
+  if (state.flags.agentLoop && (lineId.includes("paris") || lineId.includes("grenoble"))) causes.push("Agent IA en boucle");
   if (causes.length === 0) causes.push("Flux de transit regional");
   return causes;
 }

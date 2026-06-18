@@ -4,6 +4,7 @@ import { AthenaConsole } from "@/features/hud/AthenaConsole";
 import { CommandTopBar } from "@/features/hud/CommandTopBar";
 import { Inspector } from "@/features/hud/Inspector";
 import { JobsPanel } from "@/features/hud/JobsPanel";
+import { MapLegend } from "@/features/hud/MapLegend";
 import { MetricRail } from "@/features/hud/MetricRail";
 import { Telemetry } from "@/features/hud/Telemetry";
 import { TimelineTrack } from "@/features/hud/TimelineTrack";
@@ -36,6 +37,10 @@ export function Cockpit() {
         <div className="pointer-events-auto absolute right-3 top-[74px] bottom-[150px] z-20 flex w-[344px] flex-col gap-3 overflow-y-auto pr-0.5">
           <Inspector />
           <JobsPanel />
+        </div>
+
+        <div className="absolute left-1/2 top-[74px] z-20 -translate-x-1/2">
+          <MapLegend />
         </div>
 
         <div className="absolute bottom-[104px] left-3 z-20">

@@ -98,7 +98,7 @@ function upsertEffect(state: GameState, effect: Omit<ActiveEffect, "id" | "start
 
 function getEffectMagnitude(state: GameState, action: PlayerActionType) {
   return state.activeEffects
-    .filter((effect) => effect.action === action && effect.expiresAt > state.minute)
+    .filter((effect) => effect.action === action && effect.expiresAt >= state.minute)
     .reduce((total, effect) => total + effect.magnitude, 0);
 }
 
@@ -171,6 +171,12 @@ function updateAiJobs(state: GameState) {
     } else {
       job.currentPowerMw = 0;
     }
+  }
+}
+
+function updateAiJobPowers(state: GameState) {
+  for (const job of state.aiJobs) {
+    job.currentPowerMw = activeOrThrottled(job) ? computeAiJobPower(state, job) : 0;
   }
 }
 
@@ -256,10 +262,10 @@ function computeProduction(state: GameState) {
   const missionDuration = state.scenario.endMinute - state.scenario.startMinute;
   const solarRatio = clamp(1 - elapsed / missionDuration, 0, 1);
   const solarDropFactor = state.flags.solarDrop ? 0.42 : 1;
-  const nuclear = 92;
+  const nuclear = 96;
   const solar = round(30 * solarRatio * solarDropFactor, 1);
-  const wind = round(18 + Math.sin(elapsed / 18) * 4 - (state.flags.solarDrop ? 2 : 0), 1);
-  const hydro = state.metrics.stability < 42 ? 24 : 18;
+  const wind = round(20 + Math.sin(elapsed / 18) * 4 - (state.flags.solarDrop ? 1.5 : 0), 1);
+  const hydro = state.metrics.stability < 48 ? 32 : 26;
   const battery = getEffectMagnitude(state, "discharge_battery");
   const imported = getEffectMagnitude(state, "import_energy");
   const thermal = getEffectMagnitude(state, "thermal_backup");
@@ -283,7 +289,7 @@ function computeDemand(state: GameState) {
     state.scenario.endMinute,
   );
   const residential =
-    42 + progression * 18 + (state.flags.residentialPeak ? 10 : 0);
+    40 + progression * 14 + (state.flags.residentialPeak ? 8 : 0);
   const industry = 42;
   const hospital = 24;
   const event = 16 + (state.flags.cyberPriority ? 2 : 0);
@@ -359,7 +365,7 @@ function computeAiProductivity(state: GameState) {
   return clamp(48 + weightedValue, 0, 100);
 }
 
-function computeMetrics(state: GameState): GameMetrics {
+function computeMetrics(state: GameState, mode: "tick" | "instant" = "tick"): GameMetrics {
   const production = computeProduction(state);
   const demand = computeDemand(state);
   const previous = state.metrics;
@@ -372,53 +378,67 @@ function computeMetrics(state: GameState): GameMetrics {
   ).length;
 
   const reserveDelta =
-    reserveMw >= 0 ? Math.min(1.6, reserveMw / 18) : Math.max(-4.8, reserveMw / 9);
-  const incidentPenalty = unresolvedCritical * 0.55 + unresolvedWarnings * 0.2;
-  const stability = clamp(previous.stability + reserveDelta - incidentPenalty);
+    reserveMw >= 0 ? Math.min(1.9, reserveMw / 17) : Math.max(-3.45, reserveMw / 14);
+  const incidentPenalty = unresolvedCritical * 0.32 + unresolvedWarnings * 0.1;
+  const stability = mode === "tick" ? clamp(previous.stability + reserveDelta - incidentPenalty) : previous.stability;
 
   const batteryDispatch = production.battery;
   const batteryRecharge =
     reserveMw > 22 && batteryDispatch === 0 && state.minute < 18 * 60 + 40 ? 1.2 : 0;
-  const batteryLevel = clamp(
-    previous.batteryLevel - batteryDispatch * 0.12 + batteryRecharge,
-  );
+  const batteryLevel =
+    mode === "tick"
+      ? clamp(previous.batteryLevel - batteryDispatch * 0.12 + batteryRecharge)
+      : previous.batteryLevel;
 
-  const carbon = clamp(
-    previous.carbon +
-      (production.thermal > 0 ? -3.4 : 0.14) +
-      (production.imported > 0 ? -1.1 : 0.08) +
-      (production.solar + production.wind > 32 ? 0.16 : -0.08),
-  );
+  const carbon =
+    mode === "tick"
+      ? clamp(
+          previous.carbon +
+            (production.thermal > 0 ? -3.4 : 0.14) +
+            (production.imported > 0 ? -1.1 : 0.08) +
+            (production.solar + production.wind > 32 ? 0.16 : -0.08),
+        )
+      : previous.carbon;
 
-  const cost = clamp(
-    previous.cost -
-      (production.imported > 0 ? 1.25 : 0) -
-      (production.thermal > 0 ? 2.2 : 0) -
-      (reserveMw < -15 ? 0.35 : 0) +
-      (reserveMw > 8 ? 0.08 : 0),
-  );
+  const cost =
+    mode === "tick"
+      ? clamp(
+          previous.cost -
+            (production.imported > 0 ? 1.25 : 0) -
+            (production.thermal > 0 ? 2.2 : 0) -
+            (reserveMw < -15 ? 0.35 : 0) +
+            (reserveMw > 8 ? 0.08 : 0),
+        )
+      : previous.cost;
 
-  const sovereignty = clamp(
-    previous.sovereignty - (production.imported > 0 ? 1.4 : 0) + 0.04,
-  );
+  const sovereignty =
+    mode === "tick"
+      ? clamp(previous.sovereignty - (production.imported > 0 ? 1.4 : 0) + 0.04)
+      : previous.sovereignty;
 
-  const publicSatisfaction = clamp(
-    previous.publicSatisfaction -
-      (stability < 45 ? 0.8 : 0) -
-      (stability < 25 ? 2.4 : 0) -
-      (getEffectMagnitude(state, "smart_ev") > 0 ? 0.22 : 0) +
-      (stability > 65 ? 0.08 : 0),
-  );
+  const publicSatisfaction =
+    mode === "tick"
+      ? clamp(
+          previous.publicSatisfaction -
+            (stability < 45 ? 0.8 : 0) -
+            (stability < 25 ? 2.4 : 0) -
+            (getEffectMagnitude(state, "smart_ev") > 0 ? 0.22 : 0) +
+            (stability > 65 ? 0.08 : 0),
+        )
+      : previous.publicSatisfaction;
 
   const cyberFailed = state.aiJobs.some(
     (job) => job.id === "cyber-critical" && job.status === "failed",
   );
-  const criticalContinuity = clamp(
-    previous.criticalContinuity -
-      (stability < 22 ? 6 : 0) -
-      (cyberFailed ? 18 : 0) +
-      (stability > 55 ? 0.08 : 0),
-  );
+  const criticalContinuity =
+    mode === "tick"
+      ? clamp(
+          previous.criticalContinuity -
+            (stability < 22 ? 6 : 0) -
+            (cyberFailed ? 18 : 0) +
+            (stability > 55 ? 0.08 : 0),
+        )
+      : previous.criticalContinuity;
 
   const aiProductivity = computeAiProductivity(state);
   const co2Intensity = round(
@@ -459,13 +479,19 @@ function computeMetrics(state: GameState): GameMetrics {
   };
 }
 
-function recomputeState(state: GameState) {
-  const metrics = computeMetrics(state);
+function recomputeState(state: GameState, mode: "tick" | "instant" = "tick") {
+  const metrics = computeMetrics(state, mode);
   const production = computeProduction(state);
   const demand = computeDemand(state);
   state.metrics = metrics;
   state.assets = updateAssetPowers(state.assets, production, demand, metrics);
-  state.timeline = [...state.timeline, timelinePoint(state, metrics)].slice(-56);
+  const point = timelinePoint(state, metrics);
+  const previousPoint = state.timeline.at(-1);
+  if (mode === "instant" && previousPoint?.minute === state.minute) {
+    state.timeline = [...state.timeline.slice(0, -1), point].slice(-56);
+  } else {
+    state.timeline = [...state.timeline, point].slice(-56);
+  }
 }
 
 function resolveIncidentsFromState(state: GameState) {
@@ -583,7 +609,7 @@ export function advanceSimulation(currentState: GameState): GameState {
     state.minute + state.scenario.tickMinutes,
     state.scenario.endMinute,
   );
-  state.activeEffects = state.activeEffects.filter((effect) => effect.expiresAt > state.minute);
+  state.activeEffects = state.activeEffects.filter((effect) => effect.expiresAt >= state.minute);
 
   processScenarioEvents(state);
   updateAiJobs(state);
@@ -612,10 +638,10 @@ export function applyPlayerAction(
     upsertEffect(state, {
       label,
       action: actionType,
-      expiresAt: state.minute + 60,
-      magnitude: 22,
+      expiresAt: state.minute + 80,
+      magnitude: 24,
     });
-    result = "Recharge lissee pendant une heure.";
+    result = "Recharge lissee pendant 80 minutes.";
     assistant = {
       title: "Recharge EV lissee",
       body:
@@ -638,9 +664,15 @@ export function applyPlayerAction(
     if (target) {
       const job = state.aiJobs.find((item) => item.id === target.id);
       if (job) {
+        const minimumDelayUntil = state.minute + 45;
+        const preferredUntil = state.minute + 75;
+        const safeLatestStart = job.deadlineMinute - 20;
         job.status = "deferred";
         job.currentPowerMw = 0;
-        job.deferredUntil = state.minute + 45;
+        job.deferredUntil =
+          safeLatestStart > minimumDelayUntil
+            ? Math.min(preferredUntil, safeLatestStart)
+            : safeLatestStart;
         result = `${job.name} reporte hors pointe.`;
         assistant = {
           title: "Charge IA reportee",
@@ -781,7 +813,7 @@ export function applyPlayerAction(
       label,
       action: actionType,
       expiresAt: state.minute + 30,
-      magnitude: 30,
+      magnitude: 34,
     });
     result = "Import active pour securiser la marge.";
     impact = "mixed";
@@ -798,7 +830,7 @@ export function applyPlayerAction(
       label,
       action: actionType,
       expiresAt: state.minute + 25,
-      magnitude: 38,
+      magnitude: 34,
     });
     result = "Thermique de secours lance.";
     impact = "mixed";
@@ -818,8 +850,8 @@ export function applyPlayerAction(
   });
 
   if (assistant) addAssistantMessage(state, assistant);
-  updateAiJobs(state);
-  recomputeState(state);
+  updateAiJobPowers(state);
+  recomputeState(state, "instant");
   resolveIncidentsFromState(state);
 
   return state;

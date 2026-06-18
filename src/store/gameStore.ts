@@ -21,10 +21,12 @@ export interface LeaderboardEntry {
   createdAt: string;
 }
 
+export type SimulationSpeed = 0.25 | 0.5 | 1 | 2 | 4;
+
 interface GameStore {
   game: GameState;
   phase: GamePhase;
-  speed: 1 | 2 | 4;
+  speed: SimulationSpeed;
   selectedAssetId?: string;
   selectedJobId?: string;
   selectedEntity?: SelectedEntity;
@@ -36,7 +38,7 @@ interface GameStore {
   pause: () => void;
   resume: () => void;
   togglePause: () => void;
-  setSpeed: (speed: 1 | 2 | 4) => void;
+  setSpeed: (speed: SimulationSpeed) => void;
   applyAction: (action: PlayerActionType) => void;
   selectAsset: (assetId?: string) => void;
   selectJob: (jobId?: string) => void;

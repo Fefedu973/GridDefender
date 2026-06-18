@@ -3,7 +3,10 @@
 import { Activity, Pause, Play, RotateCcw } from "lucide-react";
 import { Chip } from "@/features/hud/hudKit";
 import { useGameStore } from "@/store/gameStore";
+import type { SimulationSpeed } from "@/store/gameStore";
 import { formatClock } from "@/lib/format";
+
+const simulationSpeeds: SimulationSpeed[] = [0.25, 0.5, 1, 2, 4];
 
 export function CommandTopBar() {
   const game = useGameStore((state) => state.game);
@@ -13,6 +16,12 @@ export function CommandTopBar() {
   const togglePause = useGameStore((state) => state.togglePause);
   const resetMission = useGameStore((state) => state.resetMission);
   const m = game.metrics;
+  const phaseBadgeClass =
+    phase === "paused"
+      ? "border-zinc-500/30 bg-zinc-500/10 text-zinc-300"
+      : phase === "ended"
+        ? "border-white/15 bg-white/5 text-zinc-300"
+        : "border-[var(--c-green)]/25 bg-[var(--c-green)]/10 text-[var(--c-green)]";
 
   return (
     <header className="glass-strong pointer-events-auto flex items-center gap-3 rounded-md px-3.5 py-2">
@@ -49,13 +58,13 @@ export function CommandTopBar() {
       <div className="ml-auto flex items-center gap-2">
         {/* Speed */}
         <div className="flex overflow-hidden rounded border border-[var(--glass-border-soft)] bg-white/[0.03]">
-          {[1, 2, 4].map((value) => (
+          {simulationSpeeds.map((value) => (
             <button
               key={value}
               type="button"
               title={`Vitesse x${value}`}
-              onClick={() => setSpeed(value as 1 | 2 | 4)}
-              className={`hud-num h-8 w-9 text-sm transition ${
+              onClick={() => setSpeed(value)}
+              className={`hud-num h-8 min-w-9 px-2 text-sm transition ${
                 speed === value ? "bg-[var(--c-cyan)] text-black" : "text-zinc-300 hover:bg-white/10"
               }`}
             >
@@ -83,13 +92,13 @@ export function CommandTopBar() {
         </button>
 
         <div
-          className={`hidden h-9 items-center gap-2 rounded border px-3 text-xs font-semibold xl:flex ${
-            phase === "ended"
-              ? "border-white/15 bg-white/5 text-zinc-300"
-              : "border-[var(--c-green)]/25 bg-[var(--c-green)]/10 text-[var(--c-green)]"
-          }`}
+          className={`hidden h-9 items-center gap-2 rounded border px-3 text-xs font-semibold xl:flex ${phaseBadgeClass}`}
         >
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
+          {phase === "paused" ? (
+            <Pause className="h-3.5 w-3.5" />
+          ) : (
+            <span className={`h-1.5 w-1.5 rounded-full bg-current ${phase === "running" ? "animate-pulse" : ""}`} />
+          )}
           {phase === "paused" ? "PAUSE" : phase === "ended" ? "TERMINÉE" : "EN LIGNE"}
         </div>
       </div>

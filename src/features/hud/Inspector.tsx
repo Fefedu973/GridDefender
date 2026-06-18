@@ -84,6 +84,54 @@ function Stat({ label, value, danger = false, accent }: { label: string; value: 
   );
 }
 
+function statsForNode(node: GridNode) {
+  const production = {
+    label: "Production",
+    value: formatMw(node.productionMw),
+    accent: "#34f5b0",
+  };
+  const demand = {
+    label: "Demande",
+    value: formatMw(node.demandMw),
+    accent: "#ff6b5f",
+  };
+  const flexibility = {
+    label: node.role === "storage" ? "Puissance" : "Flexibilité",
+    value: formatMw(node.flexibilityMw),
+    accent: "#a78bfa",
+  };
+
+  if (node.role === "consumer") {
+    return [
+      demand,
+      ...(node.productionMw > 0 ? [production] : []),
+      flexibility,
+    ];
+  }
+
+  if (node.role === "producer") {
+    return [
+      production,
+      ...(node.demandMw > 0 ? [demand] : []),
+      flexibility,
+    ];
+  }
+
+  if (node.role === "storage") {
+    return [
+      flexibility,
+      ...(node.productionMw > 0 ? [production] : []),
+      ...(node.demandMw > 0 ? [demand] : []),
+    ];
+  }
+
+  return [
+    flexibility,
+    ...(node.productionMw > 0 ? [production] : []),
+    ...(node.demandMw > 0 ? [demand] : []),
+  ];
+}
+
 export function Inspector() {
   const game = useGameStore((state) => state.game);
   const selectedEntity = useGameStore((state) => state.selectedEntity);
@@ -138,14 +186,15 @@ export function Inspector() {
   if (selectedEntity.kind === "node") {
     const node = snapshot.nodes.find((item) => item.id === selectedEntity.id);
     if (!node) return null;
+    const stats = statsForNode(node);
 
     return (
       <HudPanel eyebrow={`${node.region} · ${node.kind}`} title={node.label} icon={<Server className="h-4 w-4" />} strong>
         <p className="px-3.5 pt-2.5 text-[12px] leading-5 text-[var(--c-muted)]">{node.description}</p>
-        <div className="grid grid-cols-3 gap-2 px-3.5 py-3">
-          <Stat label="Production" value={formatMw(node.productionMw)} accent="#34f5b0" />
-          <Stat label="Demande" value={formatMw(node.demandMw)} accent="#ffd447" />
-          <Stat label="Flexibilité" value={formatMw(node.flexibilityMw)} accent="#a78bfa" />
+        <div className={`grid gap-2 px-3.5 py-3 ${stats.length >= 3 ? "grid-cols-3" : "grid-cols-2"}`}>
+          {stats.map((stat) => (
+            <Stat key={stat.label} label={stat.label} value={stat.value} accent={stat.accent} />
+          ))}
         </div>
         <ActionDock actions={actionsForNode(node)} />
       </HudPanel>

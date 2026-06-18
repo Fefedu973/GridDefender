@@ -16,6 +16,9 @@ export type GridNodeStatus = "stable" | "loaded" | "overloaded" | "critical" | "
 
 export type TransmissionLineStatus = "stable" | "loaded" | "overloaded" | "critical" | "offline";
 
+export type GridNodeRole = "producer" | "consumer" | "storage" | "connector";
+export type GridNodeLabelMode = "always" | "auto" | "hover";
+
 export type SelectedEntity =
   | { kind: "node"; id: string }
   | { kind: "line"; id: string }
@@ -26,6 +29,8 @@ export interface GridNode {
   id: string;
   label: string;
   kind: GridNodeKind;
+  role: GridNodeRole;
+  labelMode?: GridNodeLabelMode;
   region: string;
   lat: number;
   lon: number;

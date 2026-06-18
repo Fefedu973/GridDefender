@@ -9,6 +9,10 @@ interface CrisisEffectsProps {
   snapshot: FranceGridSnapshot;
 }
 
+const ALERT_RING_Y = 0.13;
+const ALERT_RING_INNER_RADIUS = 0.2;
+const ALERT_RING_OUTER_RADIUS = 0.27;
+
 export function CrisisEffects({ snapshot }: CrisisEffectsProps) {
   const groupRef = useRef<THREE.Group>(null);
 
@@ -33,23 +37,23 @@ export function CrisisEffects({ snapshot }: CrisisEffectsProps) {
     if (!groupRef.current) return;
     const t = clock.elapsedTime;
     groupRef.current.children.forEach((child, index) => {
-      const phase = (t * 0.9 + index * 0.5) % 1;
-      const scale = 0.4 + phase * 1.3;
+      const phase = (t * 0.5 + index * 0.5) % 1;
+      const scale = 0.5 + phase * 0.72;
       child.scale.set(scale, scale, scale);
       const mesh = child as THREE.Mesh;
-      (mesh.material as THREE.MeshBasicMaterial).opacity = (1 - phase) * 0.45;
+      (mesh.material as THREE.MeshBasicMaterial).opacity = (1 - phase) * 0.36;
     });
   });
 
   return (
     <group ref={groupRef}>
       {hotspots.map((spot) => (
-        <mesh key={spot.id} position={[spot.x, 0.03, spot.z]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.32, 0.4, 40]} />
+        <mesh key={spot.id} position={[spot.x, ALERT_RING_Y, spot.z]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[ALERT_RING_INNER_RADIUS, ALERT_RING_OUTER_RADIUS, 40]} />
           <meshBasicMaterial
             color={spot.critical ? "#ff2f5f" : "#ff7a1a"}
             transparent
-            opacity={0.4}
+            opacity={0.36}
             depthWrite={false}
             blending={THREE.AdditiveBlending}
           />

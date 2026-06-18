@@ -10,6 +10,7 @@
   --c-cyan-bright: #7df9ff;
   --c-green: #34f5b0;
   --c-amber: #ffd447;
+  --c-demand: #ff6b5f;
   --c-orange: #ff7a1a;
   --c-red: #ff2f5f;
   --c-violet: #a78bfa;
@@ -186,7 +187,7 @@ button:disabled {
 }
 .node-label--critical {
   border-color: rgba(255, 47, 95, 0.6);
-  animation: label-flash 1.2s ease-in-out infinite;
+  animation: label-flash 1.9s ease-in-out infinite;
 }
 
 /* ------------------------------------------------------------------ */
@@ -217,11 +218,11 @@ button:disabled {
 }
 
 .energy-flow {
-  animation: dash-flow 1.3s linear infinite;
+  animation: dash-flow 2.4s linear infinite;
 }
 
 .critical-pulse {
-  animation: critical-pulse 1.2s ease-in-out infinite;
+  animation: critical-pulse 1.9s ease-in-out infinite;
   transform-origin: center;
   transform-box: fill-box;
 }
@@ -230,7 +231,7 @@ button:disabled {
   box-shadow:
     inset 0 0 0 1px rgba(248, 113, 113, 0.45),
     inset 0 0 120px rgba(127, 29, 29, 0.5);
-  animation: crisis-flash 1.6s ease-in-out infinite;
+  animation: crisis-flash 2.6s ease-in-out infinite;
 }
 
 .line-clamp-2 {
@@ -289,7 +290,7 @@ svg text {
   }
 }
 .hud-rise {
-  animation: hud-rise 0.35s ease-out both;
+  animation: hud-rise 0.45s ease-out both;
 }
 @keyframes sweep {
   0% {
@@ -348,7 +349,9 @@ svg text {
   28% { opacity: 1; transform: translateY(0); }
   33%, 100% { opacity: 0; transform: translateY(-4px); }
 }
-.il-cycle3 { animation: il-cycle3 4.8s linear infinite; }
+/* `both` keeps each delayed copy on the 0% keyframe (opacity 0) during its
+   animation-delay, so the QUAND/OÙ/COMMENT texts don't all stack on frame 1. */
+.il-cycle3 { animation: il-cycle3 4.8s linear infinite both; }
 
 /* transform-box: view-box -> transform-origin is read in SVG user-space (viewBox)
    coordinates, so explicit px origins like "270px 133px" pivot correctly.

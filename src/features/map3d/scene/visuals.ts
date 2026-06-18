@@ -1,4 +1,4 @@
-import type { GridNodeKind, GridNodeStatus, TransmissionLineStatus } from "@/game/network/networkTypes";
+import type { GridNodeKind, GridNodeRole, GridNodeStatus, TransmissionLineStatus } from "@/game/network/networkTypes";
 
 export function lineStatusColor(status: TransmissionLineStatus) {
   if (status === "critical") return "#ff2f5f";
@@ -27,4 +27,11 @@ export function nodeKindColor(kind: GridNodeKind) {
   if (kind === "ev") return "#fbbf24";
   if (kind === "industry") return "#94a3b8";
   return "#60a5fa";
+}
+
+export function nodeRoleColor(role: GridNodeRole) {
+  if (role === "producer") return "#34f5b0";
+  if (role === "consumer") return "#ff6b5f";
+  if (role === "storage") return "#a78bfa";
+  return "#7df9ff";
 }

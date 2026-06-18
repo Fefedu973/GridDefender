@@ -7,7 +7,6 @@ import type { FranceGridSnapshot, SelectedEntity } from "@/game/network/networkT
 
 interface OrbitLike {
   target: THREE.Vector3;
-  autoRotate: boolean;
   update: () => void;
 }
 
@@ -49,8 +48,6 @@ export function CameraRig({ snapshot, selectedEntity, center }: CameraRigProps) 
       }
     }
 
-    // Pause the idle orbit while inspecting something, resume otherwise.
-    controls.autoRotate = !selectedEntity;
     controls.target.lerp(desired.current, 0.08);
     controls.update();
   });

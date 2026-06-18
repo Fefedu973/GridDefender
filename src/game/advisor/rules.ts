@@ -9,7 +9,7 @@ interface Recommendation {
 
 function hasActiveEffect(state: GameState, action: PlayerActionType) {
   return state.activeEffects.some(
-    (effect) => effect.action === action && effect.expiresAt > state.minute,
+    (effect) => effect.action === action && effect.expiresAt >= state.minute,
   );
 }
 
