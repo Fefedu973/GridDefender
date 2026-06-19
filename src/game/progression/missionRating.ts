@@ -15,9 +15,10 @@ export function medalForScore(score: number, thresholds: MedalThresholds): Missi
 }
 
 export function medalForMissionRun(
-  run: Pick<GameState, "cumulative"> & { outcome?: { score: number } },
+  run: Pick<GameState, "cumulative"> & { outcome?: { result?: "victory" | "failure"; score: number } },
   thresholds: MedalThresholds,
 ): MissionMedal {
+  if (run.outcome?.result !== "victory") return "none";
   const medal = medalForScore(run.outcome?.score ?? 0, thresholds);
   if (medal === "gold" && run.cumulative.athenaAutopilotUses > 0) return "silver";
   return medal;

@@ -4,6 +4,8 @@ import {
   AlertTriangle,
   BatteryCharging,
   Car,
+  ChevronDown,
+  ChevronUp,
   Clock3,
   Cloud,
   Cpu,
@@ -90,6 +92,7 @@ function ActionControl({ action, target }: { action: PlayerActionType; target: C
   const defaultDuration = getDefaultCommandDuration(action);
   const [intensity, setIntensity] = useState(defaultIntensity);
   const [duration, setDuration] = useState(defaultDuration);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const hasIntensity = defaultIntensity > 0;
   const command = {
     action,
@@ -186,37 +189,49 @@ function ActionControl({ action, target }: { action: PlayerActionType; target: C
         </span>
       </button>
       {(hasIntensity || defaultDuration > 0) && (
-        <div className="mt-2 grid gap-1.5">
-          {hasIntensity && (
-            <label className="grid gap-1.5 text-[10px] text-[var(--c-muted)]">
-              <span className="mono flex justify-between">
-                <span>MW</span>
-                <span className="text-cyan-100">{Math.round(intensity)}</span>
-              </span>
-              <HudSlider
-                ariaLabel="Intensité (MW)"
-                value={intensity}
-                min={5}
-                max={Math.max(45, defaultIntensity + 18)}
-                step={1}
-                onChange={setIntensity}
-              />
-            </label>
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={() => setAdvancedOpen((value) => !value)}
+            className="inline-flex h-7 w-full items-center justify-center gap-1.5 rounded border border-[var(--c-cyan)]/15 bg-black/20 hud-eyebrow text-[9px] text-cyan-100/60 transition hover:border-[var(--c-cyan)]/35 hover:text-cyan-50"
+          >
+            {advancedOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            Réglages avancés
+          </button>
+          {advancedOpen && (
+            <div className="mt-2 grid gap-1.5">
+              {hasIntensity && (
+                <label className="grid gap-1.5 text-[10px] text-[var(--c-muted)]">
+                  <span className="mono flex justify-between">
+                    <span>MW</span>
+                    <span className="text-cyan-100">{Math.round(intensity)}</span>
+                  </span>
+                  <HudSlider
+                    ariaLabel="Intensité (MW)"
+                    value={intensity}
+                    min={5}
+                    max={Math.max(45, defaultIntensity + 18)}
+                    step={1}
+                    onChange={setIntensity}
+                  />
+                </label>
+              )}
+              <label className="grid gap-1.5 text-[10px] text-[var(--c-muted)]">
+                <span className="mono flex justify-between">
+                  <span>Durée</span>
+                  <span className="text-cyan-100">{Math.round(duration)} min</span>
+                </span>
+                <HudSlider
+                  ariaLabel="Durée (min)"
+                  value={duration}
+                  min={5}
+                  max={120}
+                  step={5}
+                  onChange={setDuration}
+                />
+              </label>
+            </div>
           )}
-          <label className="grid gap-1.5 text-[10px] text-[var(--c-muted)]">
-            <span className="mono flex justify-between">
-              <span>Durée</span>
-              <span className="text-cyan-100">{Math.round(duration)} min</span>
-            </span>
-            <HudSlider
-              ariaLabel="Durée (min)"
-              value={duration}
-              min={5}
-              max={120}
-              step={5}
-              onChange={setDuration}
-            />
-          </label>
         </div>
       )}
     </div>
@@ -225,15 +240,35 @@ function ActionControl({ action, target }: { action: PlayerActionType; target: C
 
 function ActionDock({ actions, target }: { actions: PlayerActionType[]; target: CommandTarget }) {
   const game = useGameStore((state) => state.game);
+  const [expanded, setExpanded] = useState(false);
   const availableActions = filterAvailableActions(game, actions);
   if (availableActions.length === 0) return null;
+  const cappedActions = availableActions.slice(0, 6);
+  const primaryActions = cappedActions.slice(0, 3);
+  const secondaryActions = cappedActions.slice(3);
 
   return (
     <div className="grid gap-1.5 p-3 pt-2">
       <p className="hud-eyebrow mb-0.5 text-[var(--c-muted)]">Actions locales</p>
-      {availableActions.slice(0, 6).map((action) => (
+      {primaryActions.map((action) => (
         <ActionControl key={action} action={action} target={target} />
       ))}
+      {secondaryActions.length > 0 && (
+        <>
+          <button
+            type="button"
+            onClick={() => setExpanded((value) => !value)}
+            className="inline-flex h-8 items-center justify-center gap-1.5 rounded border border-[var(--c-cyan)]/20 bg-[var(--c-cyan)]/[0.04] hud-eyebrow text-[9px] text-cyan-100/65 transition hover:border-[var(--c-cyan)]/45 hover:text-cyan-50"
+          >
+            {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            {expanded ? "Masquer options" : `Plus d’options (${secondaryActions.length})`}
+          </button>
+          {expanded &&
+            secondaryActions.map((action) => (
+              <ActionControl key={action} action={action} target={target} />
+            ))}
+        </>
+      )}
     </div>
   );
 }

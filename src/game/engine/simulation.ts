@@ -901,14 +901,20 @@ function processActiveCommandExpirations(state: GameState) {
 
 function applyOutcome(state: GameState) {
   const difficultyRules = difficultyRulesForScenario(state.scenario);
-  if (state.minute < state.scenario.endMinute && state.metrics.stability > difficultyRules.failureMinStability) {
+  const failedCriticalJob = state.aiJobs.some((job) => job.criticality === "critical" && job.status === "failed");
+
+  if (
+    !failedCriticalJob &&
+    state.minute < state.scenario.endMinute &&
+    state.metrics.stability > difficultyRules.failureMinStability
+  ) {
     if (state.metrics.criticalContinuity > difficultyRules.failureMinCriticalContinuity) return;
   }
 
   const failure =
     state.metrics.stability <= difficultyRules.failureMinStability ||
     state.metrics.criticalContinuity <= difficultyRules.failureMinCriticalContinuity ||
-    state.aiJobs.some((job) => job.id === "cyber-critical" && job.status === "failed");
+    failedCriticalJob;
 
   if (state.minute >= state.scenario.endMinute || failure) {
     const objectiveResults = evaluateObjectiveChecks(state);
@@ -1151,8 +1157,7 @@ export function createInitialGameState(scenario: Scenario): GameState {
 
   // Populate flows/statuses so the "ready" map renders the real grid.
   solveGridTick(state, { tickMinutes: 0 });
-
-  state.timeline = [timelinePoint(state)];
+  recomputeState(state, "instant");
   addAssistantMessage(state, {
     title: "ATHENA Grid en ligne",
     body:

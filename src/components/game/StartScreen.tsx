@@ -243,6 +243,9 @@ export function StartScreen() {
                 <ShieldCheck className="h-3.5 w-3.5 text-[var(--c-green)]" />
                 {selectedMission.title} · {formatClock(game.scenario.startMinute)}–{formatClock(game.scenario.endMinute)}
               </p>
+              <p className="mt-1 text-[10px] leading-4 text-[var(--c-muted)]">
+                Simulation pédagogique : topologie et valeurs simplifiées, sans usage opérationnel.
+              </p>
 
               <nav className="mt-5 grid gap-2">
                 <MenuButton icon={<Layers className="h-4 w-4" />} label="Campagne" hint={`${campaignMap.nodes.filter((n) => n.status === "completed").length}/${campaignMap.nodes.length} missions`} onClick={() => setView("campaign")} />

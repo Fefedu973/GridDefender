@@ -104,6 +104,31 @@ test("scenario events apply declarative effects without relying on known event i
   assert.notEqual(state.incidents.find((incident) => incident.id === "arbitrary-ai-demand-event")?.resolvedAt, undefined);
 });
 
+test("any failed critical AI job compromises the mission", () => {
+  const scenario = structuredClone(eveningPeakScenario) as Scenario;
+  scenario.id = "renamed-critical-job-test";
+  scenario.aiJobs = scenario.aiJobs.map((job) =>
+    job.id === "cyber-critical"
+      ? {
+          ...job,
+          id: "critical-grid-agent",
+          status: "active",
+        }
+      : job,
+  );
+
+  let state = createInitialGameState(scenario);
+  state.phase = "running";
+  const critical = state.aiJobs.find((job) => job.id === "critical-grid-agent");
+  assert.ok(critical);
+  critical.status = "failed";
+
+  state = advanceSimulation(state);
+
+  assert.equal(state.phase, "ended");
+  assert.equal(state.outcome?.result, "failure");
+});
+
 test("command capacity and cooldown are consumed only by applied commands", () => {
   const initial = createInitialGameState(eveningPeakScenario);
   const afterBattery = applyPlayerAction(initial, {

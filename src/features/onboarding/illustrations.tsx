@@ -69,7 +69,7 @@ function Shield({
   );
 }
 
-/* 1 — Contexte : VivaTech / Defend Intelligence / OpenAI × Engie */
+/* 1 — Contexte : VivaTech / Defend Intelligence / IA x énergie */
 export function ContextIllustration() {
   const cx = 180;
   const cy = 162;
@@ -89,14 +89,14 @@ export function ContextIllustration() {
       <circle cx={cx} cy={cy} r="30" fill="#05202b" stroke={C.cyan} strokeWidth="1.5" />
       <path d={boltPath(cx, cy, 1.05)} fill={C.amber} />
 
-      {/* partner pills */}
+      {/* theme pills */}
       <g className="il-float" style={{ animationDelay: "0.3s" }}>
         <rect x="24" y="210" width="92" height="30" rx="15" fill="#06181f" stroke={C.bright} strokeWidth="1" />
-        <text x="70" y="230" textAnchor="middle" fill={C.bright} fontFamily="Inter" fontWeight="600" fontSize="13">OpenAI</text>
+        <text x="70" y="230" textAnchor="middle" fill={C.bright} fontFamily="Inter" fontWeight="600" fontSize="13">IA</text>
       </g>
       <g className="il-float" style={{ animationDelay: "0.9s" }}>
         <rect x="244" y="210" width="92" height="30" rx="15" fill="#06181f" stroke={C.green} strokeWidth="1" />
-        <text x="290" y="230" textAnchor="middle" fill={C.green} fontFamily="Inter" fontWeight="600" fontSize="13">Engie</text>
+        <text x="290" y="230" textAnchor="middle" fill={C.green} fontFamily="Inter" fontWeight="600" fontSize="13">Énergie</text>
       </g>
 
       <text x="180" y="266" textAnchor="middle" fill={C.muted} fontFamily="Inter" fontSize="12">

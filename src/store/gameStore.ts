@@ -87,6 +87,7 @@ interface GameStore {
   startDemoMission: (missionId?: string) => void;
   startScenario: (scenario: Scenario) => void;
   resetMission: (autostart?: boolean) => void;
+  returnToMenu: () => void;
   tick: () => void;
   pause: () => void;
   resume: () => void;
@@ -185,7 +186,7 @@ export function leaderboardModeForScenario(scenario: Pick<Scenario, "id" | "runM
 }
 
 export function createLeaderboardEntry(game: GameState): LeaderboardEntry | undefined {
-  if (!game.outcome) return undefined;
+  if (game.outcome?.result !== "victory") return undefined;
 
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -220,8 +221,8 @@ function saveEndedRun(game: GameState, leaderboard: LeaderboardEntry[]) {
   return next;
 }
 
-function updateMissionProgress(game: GameState, progress: CampaignProgress): CampaignProgress {
-  if (!game.outcome) return progress;
+export function updateMissionProgress(game: GameState, progress: CampaignProgress): CampaignProgress {
+  if (game.outcome?.result !== "victory") return progress;
   const missionId = game.scenario.id;
   if (!isCampaignMissionId(missionId)) return progress;
   const previous: MissionProgress = progress.missions[missionId] ?? {
@@ -359,6 +360,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({
       game,
       phase: game.phase,
+      lastDemoAction: undefined,
+      speechLog: [],
+      selectedEntity: undefined,
+      viewLayer,
+    });
+  },
+  returnToMenu: () => {
+    const mission = getMissionDefinition(get().selectedMissionId);
+    const game = createInitialGameState(mission.scenario);
+    const viewLayer = viewLayerForScenario(mission.scenario, get().viewLayer);
+    set({
+      game,
+      phase: "ready",
+      demoMode: false,
       lastDemoAction: undefined,
       speechLog: [],
       selectedEntity: undefined,

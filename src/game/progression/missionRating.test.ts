@@ -31,15 +31,23 @@ test("medal thresholds map score bands to campaign medals", () => {
 
 test("gold medal requires a run without ATHENA autopilot", () => {
   assert.equal(
-    medalForMissionRun({ outcome: { score: 930 }, cumulative: cumulative(0) }, thresholds),
+    medalForMissionRun({ outcome: { result: "victory", score: 930 }, cumulative: cumulative(0) }, thresholds),
     "gold",
   );
   assert.equal(
-    medalForMissionRun({ outcome: { score: 930 }, cumulative: cumulative(1) }, thresholds),
+    medalForMissionRun({ outcome: { result: "victory", score: 930 }, cumulative: cumulative(1) }, thresholds),
     "silver",
   );
   assert.equal(
-    medalForMissionRun({ outcome: { score: 760 }, cumulative: cumulative(1) }, thresholds),
+    medalForMissionRun({ outcome: { result: "victory", score: 760 }, cumulative: cumulative(1) }, thresholds),
     "silver",
   );
+});
+
+test("failed missions never receive a medal even with a high score", () => {
+  assert.equal(
+    medalForMissionRun({ outcome: { result: "failure", score: 930 }, cumulative: cumulative(0) }, thresholds),
+    "none",
+  );
+  assert.equal(medalForMissionRun({ cumulative: cumulative(0) }, thresholds), "none");
 });

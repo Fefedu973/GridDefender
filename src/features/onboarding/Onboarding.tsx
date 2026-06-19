@@ -32,7 +32,7 @@ const STEPS: Step[] = [
     body: "Une journée de forte attention médiatique au salon VivaTech. Le hackathon Defend Intelligence, organisé par l’ingénieur et YouTubeur du même nom, met l’énergie et l’IA au cœur du défi.",
     bullets: [
       "Thème : intégrer l’IA au réseau électrique sans le fragiliser.",
-      "En partenariat avec OpenAI et Engie.",
+      "Contexte hackathon autour de l’IA, de l’énergie et de la résilience.",
       "Vous incarnez l’opérateur du réseau pendant la démo en direct.",
     ],
     accent: "#7df9ff",

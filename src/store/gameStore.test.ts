@@ -5,7 +5,8 @@ import { buildCrisisRun } from "@/content/modes/crisisRun";
 import { getDailyChallenge } from "@/content/modes/dailyChallenge";
 import { buildSandboxScenario, defaultSandboxOptions } from "@/content/modes/sandbox";
 import { createInitialGameState } from "@/game/engine/simulation";
-import { createLeaderboardEntry, leaderboardModeForScenario, useGameStore } from "@/store/gameStore";
+import { emptyCampaignProgress, isMissionUnlocked } from "@/game/progression/campaignProgress";
+import { createLeaderboardEntry, leaderboardModeForScenario, updateMissionProgress, useGameStore } from "@/store/gameStore";
 
 test("resetMission replays the active generated scenario instead of the selected campaign mission", () => {
   const sandbox = buildSandboxScenario({
@@ -30,6 +31,43 @@ test("resetMission replays the active generated scenario instead of the selected
   assert.equal(state.game.scenario.mapId, "rhone-corridor");
   assert.equal(state.game.scenario.difficulty, "expert");
   assert.equal(state.game.minute, sandbox.startMinute);
+});
+
+test("returnToMenu leaves generated runs and restores the command center", () => {
+  const sandbox = buildSandboxScenario({
+    ...defaultSandboxOptions,
+    mapId: "corsica-island",
+    seed: "store-return-menu",
+  });
+
+  useGameStore.getState().selectMission("paris-peak");
+  useGameStore.getState().startScenario(sandbox);
+  useGameStore.setState({
+    phase: "ended",
+    game: {
+      ...useGameStore.getState().game,
+      phase: "ended",
+      outcome: {
+        result: "failure",
+        score: 200,
+        badge: "Mission compromise",
+        summary: "test",
+        objectiveResults: [],
+      },
+    },
+    demoMode: true,
+    selectedEntity: { kind: "node", id: "paris-saclay-ai" },
+  });
+
+  useGameStore.getState().returnToMenu();
+
+  const state = useGameStore.getState();
+  assert.equal(state.phase, "ready");
+  assert.equal(state.game.phase, "ready");
+  assert.equal(state.demoMode, false);
+  assert.equal(state.selectedEntity, undefined);
+  assert.equal(state.selectedMissionId, "paris-peak");
+  assert.equal(state.game.scenario.id, "paris-peak");
 });
 
 test("leaderboard metadata keeps generated modes comparable", () => {
@@ -60,6 +98,44 @@ test("leaderboard metadata keeps generated modes comparable", () => {
   assert.equal(entry?.scenarioId, daily.id);
   assert.equal(entry?.scenarioName, daily.name);
   assert.equal(entry?.seed, "2026-06-19");
+});
+
+test("failed campaign runs do not unlock rewards or medals", () => {
+  const game = createInitialGameState(getMissionDefinition("tutorial-microgrid").scenario);
+  game.outcome = {
+    result: "failure",
+    score: 930,
+    badge: "Mission compromise",
+    summary: "Objectif obligatoire raté.",
+    objectiveResults: [],
+  };
+
+  const next = updateMissionProgress(game, emptyCampaignProgress);
+
+  assert.deepEqual(next.unlockedRewards, []);
+  assert.equal(next.missions["tutorial-microgrid"], undefined);
+  assert.equal(isMissionUnlocked(next, "paris-peak", "tutorial-microgrid"), false);
+  assert.equal(createLeaderboardEntry(game), undefined);
+});
+
+test("victorious campaign runs unlock rewards and completion normally", () => {
+  const game = createInitialGameState(getMissionDefinition("tutorial-microgrid").scenario);
+  game.outcome = {
+    result: "victory",
+    score: 930,
+    badge: "Mission réussie",
+    summary: "ok",
+    objectiveResults: [],
+  };
+
+  const next = updateMissionProgress(game, emptyCampaignProgress);
+  const mission = next.missions["tutorial-microgrid"];
+
+  assert.equal(next.unlockedRewards.includes("mission-paris-peak"), true);
+  assert.equal(mission?.bestMedal, "gold");
+  assert.equal(mission?.bestScore, 930);
+  assert.equal(typeof mission?.completedAt, "string");
+  assert.equal(isMissionUnlocked(next, "paris-peak", "tutorial-microgrid"), true);
 });
 
 test("demo mission starts an isolated ATHENA-controlled run", () => {

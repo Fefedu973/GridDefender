@@ -20,6 +20,19 @@ test("campaign exposes the full eight-mission arc across distinct maps including
   }
 });
 
+test("initial mission metrics match the solved grid totals", () => {
+  for (const mission of missionRegistry) {
+    const state = createInitialGameState(mission.scenario);
+    const production = state.grid.nodes.reduce((total, node) => total + node.productionMw, 0);
+    const demand = state.grid.nodes.reduce((total, node) => total + node.demandMw, 0);
+
+    assert.ok(Math.abs(production - state.metrics.productionMw) < 0.2, `${mission.id} production`);
+    assert.ok(Math.abs(demand - state.metrics.demandMw) < 0.2, `${mission.id} demand`);
+    assert.equal(state.timeline.length, 1, `${mission.id} initial timeline`);
+    assert.equal(state.timeline[0]?.minute, state.minute, `${mission.id} initial timeline minute`);
+  }
+});
+
 test("campaign exposes the next mission in ordered progression", () => {
   assert.equal(getNextCampaignMissionDefinition("tutorial-microgrid")?.id, "paris-peak");
   assert.equal(getNextCampaignMissionDefinition("black-grid")?.id, "europe-2030");

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Award, RotateCcw, Trophy } from "lucide-react";
+import { ArrowRight, Award, Home, RotateCcw, Trophy } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -35,6 +35,7 @@ export function ResultsScreen() {
   const leaderboard = useGameStore((state) => state.leaderboard);
   const progress = useGameStore((state) => state.progress);
   const resetMission = useGameStore((state) => state.resetMission);
+  const returnToMenu = useGameStore((state) => state.returnToMenu);
   const startMission = useGameStore((state) => state.startMission);
   const startScenario = useGameStore((state) => state.startScenario);
   const clearLeaderboard = useGameStore((state) => state.clearLeaderboard);
@@ -111,6 +112,13 @@ export function ResultsScreen() {
               className={`${nextCampaignMission ? "mt-2" : "mt-4"} inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[var(--c-cyan)] text-sm font-bold uppercase tracking-wide text-black transition hover:bg-[var(--c-cyan-bright)]`}
             >
               <RotateCcw className="h-4 w-4" /> Rejouer
+            </button>
+            <button
+              type="button"
+              onClick={returnToMenu}
+              className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-white/15 bg-white/[0.04] text-sm font-bold uppercase tracking-wide text-zinc-100 transition hover:border-[var(--c-cyan)]/50 hover:bg-[var(--c-cyan)]/[0.08]"
+            >
+              <Home className="h-4 w-4" /> Retour au menu
             </button>
           </div>
         </section>
