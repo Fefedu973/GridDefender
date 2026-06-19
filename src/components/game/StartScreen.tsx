@@ -198,10 +198,10 @@ export function StartScreen() {
     <main className="relative h-screen w-screen overflow-hidden bg-[#030a10] text-white">
       {/* Live 3D backdrop */}
       <GridSceneCanvas gameOverride={homePreviewGame} showHorizonRing={false} />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(2,8,12,0.92)_0%,rgba(2,8,12,0.55)_45%,transparent_72%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(2,8,12,0.85)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(90deg,rgba(2,8,12,0.92)_0%,rgba(2,8,12,0.55)_45%,transparent_72%)]" />
+      <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(2,8,12,0.85)_100%)]" />
 
-      <div className="pointer-events-none absolute inset-0 flex items-center">
+      <div className="pointer-events-none absolute inset-0 z-20 flex items-center">
         <section className="pointer-events-auto ml-[6vw] flex max-h-[88vh] w-[min(560px,90vw)] flex-col">
           {view === "home" ? (
             <div className="hud-rise flex max-h-[88vh] flex-col overflow-y-auto pr-1">

@@ -70,7 +70,7 @@ export function FranceGridCanvas({
   const revealMap = useCallback(() => setMapReady(true), []);
 
   return (
-    <div className="absolute inset-0 bg-[#030a10]" data-map={map?.id ?? "france-national"}>
+    <div className="absolute inset-0 isolate z-0 bg-[#030a10]" data-map={map?.id ?? "france-national"}>
       <div
         className={`absolute inset-0 transition-opacity duration-500 ease-out ${
           mapReady ? "opacity-100" : "opacity-0"

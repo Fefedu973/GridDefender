@@ -32,11 +32,11 @@ export function Cockpit() {
       <AthenaDemoDirector />
 
       {/* Edge darkening so floating HUD text stays legible over bright map areas */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(2,8,12,0.7)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(2,8,12,0.7)_100%)]" />
       {crisis && <div className="crisis-vignette pointer-events-none absolute inset-0 z-10" />}
 
       {/* HUD layer */}
-      <div className="pointer-events-none absolute inset-0">
+      <div className="pointer-events-none absolute inset-0 z-20">
         <div className="pointer-events-auto absolute left-3 right-3 top-3 z-30">
           <CommandTopBar />
         </div>
