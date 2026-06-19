@@ -31,7 +31,7 @@ export function getAdvisorRecommendation(state: GameState): Recommendation {
     return {
       title: "Agent IA en boucle",
       body:
-        "Energy SOC detecte une consommation IA sans valeur utile. Appliquer un timeout reduira la charge sans penaliser le job cyber.",
+        "Energy SOC détecte une consommation IA sans valeur utile. Appliquer un timeout réduira la charge sans pénaliser le job cyber.",
       tone: "critical",
       suggestedAction: "agent_timeout",
     };
@@ -39,9 +39,9 @@ export function getAdvisorRecommendation(state: GameState): Recommendation {
 
   if (state.metrics.stability < 35 && state.metrics.batteryLevel > 18) {
     return {
-      title: "Reserve reseau critique",
+      title: "Réserve réseau critique",
       body:
-        "La marge est trop faible. Decharger les batteries est l'action la plus rapide avant d'utiliser l'import ou le thermique.",
+        "La marge est trop faible. Décharger les batteries est l'action la plus rapide avant d'utiliser l'import ou le thermique.",
       tone: "critical",
       suggestedAction: "discharge_battery",
     };
@@ -49,9 +49,9 @@ export function getAdvisorRecommendation(state: GameState): Recommendation {
 
   if (state.metrics.stability < 45 && hasFlexibleAiLoad(state)) {
     return {
-      title: "Decaler la charge flexible",
+      title: "Décaler la charge flexible",
       body:
-        "La tension vient d'un cumul pic reseau et jobs IA non critiques. Reporter le job flexible preserve l'IA utile tout en liberant de la puissance.",
+        "La tension vient d'un cumul pic réseau et jobs IA non critiques. Reporter le job flexible préserve l'IA utile tout en libérant de la puissance.",
       tone: "critical",
       suggestedAction: "defer_ai",
     };
@@ -59,9 +59,9 @@ export function getAdvisorRecommendation(state: GameState): Recommendation {
 
   if (state.flags.evSurge && !hasActiveEffect(state, "smart_ev")) {
     return {
-      title: "Pic EV anticipe",
+      title: "Pic EV anticipé",
       body:
-        "La recharge des vehicules arrive avant le pic residentiel. Le lissage EV reduira la pointe sans couper les usages essentiels.",
+        "La recharge des véhicules arrive avant le pic résidentiel. Le lissage EV réduira la pointe sans couper les usages essentiels.",
       tone: "warning",
       suggestedAction: "smart_ev",
     };
@@ -75,7 +75,7 @@ export function getAdvisorRecommendation(state: GameState): Recommendation {
     return {
       title: "Utiliser le stockage",
       body:
-        "Le deficit reste gerable. Une decharge courte des batteries peut passer le creux sans degrader le CO2.",
+        "Le déficit reste gérable. Une décharge courte des batteries peut passer le creux sans dégrader le CO₂.",
       tone: "warning",
       suggestedAction: "discharge_battery",
     };
@@ -91,9 +91,9 @@ export function getAdvisorRecommendation(state: GameState): Recommendation {
 
   if (heavyActiveJob) {
     return {
-      title: "Modele IA surdimensionne",
+      title: "Modèle IA surdimensionné",
       body:
-        "Un job non critique peut passer sur un modele plus leger. L'impact qualite est limite et la puissance baisse immediatement.",
+        "Un job non critique peut passer sur un modèle plus léger. L'impact qualité est limité et la puissance baisse immédiatement.",
       tone: "warning",
       suggestedAction: "reduce_model",
     };
@@ -105,9 +105,9 @@ export function getAdvisorRecommendation(state: GameState): Recommendation {
 
   if (redundantJob) {
     return {
-      title: "Requetes redondantes",
+      title: "Requêtes redondantes",
       body:
-        "Le cache IA peut eviter des appels repetes. C'est une optimisation peu risquee pour stabiliser la demande numerique.",
+        "Le cache IA peut éviter des appels répétés. C'est une optimisation peu risquée pour stabiliser la demande numérique.",
       tone: "info",
       suggestedAction: "activate_cache",
     };
@@ -115,18 +115,18 @@ export function getAdvisorRecommendation(state: GameState): Recommendation {
 
   if (state.metrics.stability < 24 && !hasActiveEffect(state, "import_energy")) {
     return {
-      title: "Securiser avant blackout",
+      title: "Sécuriser avant blackout",
       body:
-        "Si la batterie ne suffit plus, l'import est preferable au thermique pour eviter un blackout tout en limitant le CO2.",
+        "Si la batterie ne suffit plus, l'import est préférable au thermique pour éviter un blackout tout en limitant le CO₂.",
       tone: "critical",
       suggestedAction: "import_energy",
     };
   }
 
   return {
-    title: "Reseau sous controle",
+    title: "Réseau sous contrôle",
     body:
-      "La strategie tient. Gardez les jobs critiques souverains, chargez les usages flexibles hors pic et conservez une marge batterie.",
+      "La stratégie tient. Gardez les jobs critiques souverains, chargez les usages flexibles hors pic et conservez une marge batterie.",
     tone: "info",
   };
 }

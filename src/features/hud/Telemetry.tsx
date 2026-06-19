@@ -62,6 +62,7 @@ function Charts() {
 function Journal() {
   const incidents = useGameStore((state) => state.game.incidents);
   const actions = useGameStore((state) => state.game.actionHistory);
+  const speechLog = useGameStore((state) => state.speechLog);
   return (
     <div className="grid gap-3 md:grid-cols-2">
       <div>
@@ -95,6 +96,33 @@ function Journal() {
                 <span className="mono text-[10px] text-[var(--c-muted)]">{formatClock(a.minute)}</span>
               </div>
               <p className="mt-0.5 text-[10px] leading-3 text-[var(--c-muted)]">{a.result}</p>
+              {a.feedback && (
+                <p className="mono mt-1 text-[10px] text-[var(--c-green)]">
+                  {a.feedback.comboLabel} · +{a.feedback.tacticalScore} tactique
+                  {a.feedback.relievedLineIds.length > 0 ? ` · ${a.feedback.relievedLineIds.length} ligne(s)` : ""}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="md:col-span-2">
+        <p className="hud-eyebrow mb-1.5 text-zinc-300">TTS ATHENA</p>
+        <div className="grid gap-1.5">
+          {speechLog.length === 0 && (
+            <p className="rounded border border-[var(--glass-border-soft)] bg-white/[0.02] p-2 text-[11px] text-[var(--c-muted)]">
+              Aucun texte lu par le TTS pour l’instant.
+            </p>
+          )}
+          {speechLog.slice(0, 4).map((entry) => (
+            <div key={`${entry.id}-${entry.serial}`} className="rounded border border-[var(--glass-border-soft)] bg-white/[0.025] p-2">
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <span className="mono text-[10px] text-[var(--c-muted)]">{formatClock(entry.minute)}</span>
+                <span className="mono truncate text-[10px] text-cyan-100/55">
+                  {entry.voiceName ?? "voix navigateur"} · {entry.voiceLang}
+                </span>
+              </div>
+              <p className="break-words text-[11px] leading-4 text-zinc-200">{entry.text}</p>
             </div>
           ))}
         </div>
@@ -106,6 +134,8 @@ function Journal() {
 export function Telemetry() {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"charts" | "journal">("charts");
+  const telemetry = useGameStore((state) => state.game.scenario.telemetry);
+  const degradedTelemetry = telemetry && telemetry.mode !== "nominal";
 
   return (
     <div className="pointer-events-auto flex flex-col items-end">
@@ -128,6 +158,15 @@ export function Telemetry() {
                 <ScrollText className="h-3.5 w-3.5" /> Journal
               </button>
             </div>
+            {degradedTelemetry && telemetry && (
+              <div className="hidden min-w-0 flex-1 justify-end px-3 text-right md:flex">
+                <p className="mono truncate text-[10px] text-[var(--c-amber)]">
+                  {telemetry.label}
+                  {telemetry.metricNoisePct ? ` · bruit ±${telemetry.metricNoisePct}%` : ""}
+                  {telemetry.phantomLineIds?.length ? ` · ${telemetry.phantomLineIds.length} ligne fantôme` : ""}
+                </p>
+              </div>
+            )}
             <button type="button" onClick={() => setOpen(false)} className="grid h-7 w-7 place-items-center rounded text-[var(--c-muted)] hover:bg-white/10 hover:text-white">
               <X className="h-4 w-4" />
             </button>

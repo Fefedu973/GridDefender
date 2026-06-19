@@ -11,9 +11,10 @@ interface FlowParticlesProps {
   count: number;
   speed: number;
   status: TransmissionLineStatus;
+  reverse?: boolean;
 }
 
-export function FlowParticles({ curve, count, speed, status }: FlowParticlesProps) {
+export function FlowParticles({ curve, count, speed, status, reverse = false }: FlowParticlesProps) {
   const groupRef = useRef<THREE.Group>(null);
   const offsets = useMemo(() => Array.from({ length: count }, (_, index) => index / count), [count]);
   const color = lineStatusColor(status);
@@ -22,9 +23,10 @@ export function FlowParticles({ curve, count, speed, status }: FlowParticlesProp
     if (!groupRef.current) return;
     const elapsed = clock.elapsedTime * speed;
     groupRef.current.children.forEach((child, index) => {
-      const t = (elapsed + offsets[index]) % 1;
+      const phase = (elapsed + offsets[index]) % 1;
+      const t = reverse ? 1 - phase : phase;
       const point = curve.getPoint(t);
-      const next = curve.getPoint((t + 0.012) % 1);
+      const next = curve.getPoint(reverse ? Math.max(0, t - 0.012) : (t + 0.012) % 1);
       child.position.copy(point);
       child.lookAt(next);
       // Short, restrained pulses keep the line readable as infrastructure first.

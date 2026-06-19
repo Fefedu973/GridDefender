@@ -5,31 +5,36 @@ import { Cockpit } from "@/components/game/Cockpit";
 import { ResultsScreen } from "@/components/game/ResultsScreen";
 import { StartScreen } from "@/components/game/StartScreen";
 import { Onboarding } from "@/features/onboarding/Onboarding";
+import { DEFAULT_TICK_INTERVAL_MS } from "@/game/simulation/timing";
 import { useGameStore } from "@/store/gameStore";
 
 export function GameShell() {
   const phase = useGameStore((state) => state.phase);
   const speed = useGameStore((state) => state.speed);
   const tick = useGameStore((state) => state.tick);
-  const tutorialSeen = useGameStore((state) => state.tutorialSeen);
+  const introOpen = useGameStore((state) => state.introOpen);
+  const hydratePreferences = useGameStore((state) => state.hydratePreferences);
   const hydrateLeaderboard = useGameStore((state) => state.hydrateLeaderboard);
   const hydrateTutorial = useGameStore((state) => state.hydrateTutorial);
+  const hydrateProgress = useGameStore((state) => state.hydrateProgress);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    hydratePreferences();
     hydrateLeaderboard();
     hydrateTutorial();
+    hydrateProgress();
 
     const timeoutId = window.setTimeout(() => setMounted(true), 0);
     return () => window.clearTimeout(timeoutId);
-  }, [hydrateLeaderboard, hydrateTutorial]);
+  }, [hydrateLeaderboard, hydratePreferences, hydrateProgress, hydrateTutorial]);
 
   useEffect(() => {
     if (phase !== "running") return;
 
     const interval = window.setInterval(() => {
       tick();
-    }, Math.round(1350 / speed));
+    }, Math.round(DEFAULT_TICK_INTERVAL_MS / speed));
 
     return () => window.clearInterval(interval);
   }, [phase, speed, tick]);
@@ -38,6 +43,6 @@ export function GameShell() {
   if (!mounted) return <div className="h-screen w-screen bg-[#030a10]" />;
 
   if (phase === "ended") return <ResultsScreen />;
-  if (phase === "ready") return tutorialSeen ? <StartScreen /> : <Onboarding />;
+  if (phase === "ready") return introOpen ? <Onboarding /> : <StartScreen />;
   return <Cockpit />;
 }

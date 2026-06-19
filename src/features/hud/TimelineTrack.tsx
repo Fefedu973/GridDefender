@@ -1,18 +1,43 @@
 "use client";
 
 import { AlertTriangle, CheckCircle2, Clock3 } from "lucide-react";
+import { getTimelineEventIntel } from "@/game/timeline/eventIntel";
 import { useGameStore } from "@/store/gameStore";
 import { formatClock } from "@/lib/format";
 
 export function TimelineTrack() {
   const game = useGameStore((state) => state.game);
+  const applyAction = useGameStore((state) => state.applyAction);
   const { startMinute, endMinute, events } = game.scenario;
   const span = Math.max(1, endMinute - startMinute);
   const ratio = (minute: number) => Math.max(0, Math.min(1, (minute - startMinute) / span));
   const playhead = ratio(game.minute);
+  const minuteFromPointer = (clientX: number, bounds: DOMRect) => {
+    const pointerRatio = Math.max(0, Math.min(1, (clientX - bounds.left) / bounds.width));
+    return Math.round((startMinute + pointerRatio * span) / game.scenario.tickMinutes) * game.scenario.tickMinutes;
+  };
 
   return (
-    <div className="glass-strong pointer-events-auto rounded-md px-4 py-2.5">
+    <div
+      className="glass-strong pointer-events-auto rounded-md px-4 py-2.5"
+      onDragOver={(event) => {
+        if (Array.from(event.dataTransfer.types).includes("application/grid-defender-job")) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+        }
+      }}
+      onDrop={(event) => {
+        const jobId = event.dataTransfer.getData("application/grid-defender-job");
+        if (!jobId) return;
+        event.preventDefault();
+        const scheduledMinute = minuteFromPointer(event.clientX, event.currentTarget.getBoundingClientRect());
+        applyAction({
+          action: "defer_ai",
+          target: { kind: "workload", id: jobId },
+          scheduledMinute,
+        });
+      }}
+    >
       <div className="mb-2 flex items-center justify-between">
         <p className="hud-eyebrow text-[var(--c-cyan-bright)]">Timeline de crise</p>
         <p className="mono text-[11px] text-[var(--c-muted)]">
@@ -36,14 +61,20 @@ export function TimelineTrack() {
         {events.map((event) => {
           const triggered = game.triggeredEventIds.includes(event.id);
           const active = triggered && game.incidents.some((i) => i.id === event.id && !i.resolvedAt);
-          const left = ratio(event.minute) * 100;
+          const intel = getTimelineEventIntel(game.scenario, event, game.minute, game.triggeredEventIds);
+          if (intel.level === "hidden") return null;
+          const left = ratio(intel.markerMinute) * 100;
           const color = active ? "var(--c-red)" : triggered ? "var(--c-green)" : "var(--c-muted)";
+          const timeLabel =
+            intel.level === "forecast" && intel.windowStartMinute !== undefined && intel.windowEndMinute !== undefined
+              ? `${formatClock(intel.windowStartMinute)}-${formatClock(intel.windowEndMinute)}`
+              : formatClock(event.minute);
           return (
             <div
               key={event.id}
               className="absolute top-0 flex w-36 -translate-x-1/2 flex-col items-center"
               style={{ left: `${left}%` }}
-              title={event.description}
+              title={intel.description}
             >
               <div className="flex items-center gap-1 rounded border px-1.5 py-0.5" style={{ borderColor: `${color}55`, background: `${color}12` }}>
                 {active ? (
@@ -54,10 +85,10 @@ export function TimelineTrack() {
                   <Clock3 className="h-3 w-3" style={{ color }} />
                 )}
                 <span className="mono text-[10px]" style={{ color }}>
-                  {formatClock(event.minute)}
+                  {timeLabel}
                 </span>
               </div>
-              <span className="mt-0.5 line-clamp-2 text-center text-[10px] leading-3 text-zinc-400">{event.title}</span>
+              <span className="mt-0.5 line-clamp-2 text-center text-[10px] leading-3 text-zinc-400">{intel.title}</span>
               <span className="mt-1 h-2 w-px" style={{ background: color }} />
             </div>
           );

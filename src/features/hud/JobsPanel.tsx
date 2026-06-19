@@ -17,22 +17,30 @@ const statusMeta: Record<AIJobStatus, { label: string; color: string }> = {
 
 export function JobsPanel() {
   const jobs = useGameStore((state) => state.game.aiJobs);
-  const selectedJobId = useGameStore((state) => state.selectedJobId);
-  const selectJob = useGameStore((state) => state.selectJob);
+  const selectedEntity = useGameStore((state) => state.selectedEntity);
+  const selectEntity = useGameStore((state) => state.selectEntity);
 
   return (
     <HudPanel eyebrow="PromptWatt" title="Datacenter IA" icon={<Cpu className="h-4 w-4" />}>
       <div className="grid gap-1.5 p-2.5">
         {jobs.map((job) => {
-          const meta = statusMeta[job.status];
-          const selected = selectedJobId === job.id;
+          const meta = job.externalized ? { label: "Cloud ext.", color: "#f59e0b" } : statusMeta[job.status];
+          const selected = selectedEntity?.kind === "workload" && selectedEntity.id === job.id;
           const powerPct = Math.min(100, (job.currentPowerMw / 32) * 100);
+          const draggable = !job.externalized && job.criticality !== "critical" && job.status !== "completed" && job.status !== "failed";
           return (
             <button
               key={job.id}
               type="button"
               title={job.narrative}
-              onClick={() => selectJob(job.id)}
+              draggable={draggable}
+              onDragStart={(event) => {
+                if (!draggable) return;
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("application/grid-defender-job", job.id);
+                event.dataTransfer.setData("text/plain", job.id);
+              }}
+              onClick={() => selectEntity({ kind: "workload", id: job.id })}
               className={`w-full rounded border px-2.5 py-2 text-left transition ${
                 selected
                   ? "border-[var(--c-cyan)]/55 bg-[var(--c-cyan)]/10"

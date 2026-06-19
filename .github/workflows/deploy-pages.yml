@@ -39,6 +39,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test
+
       - name: Build static export
         run: npm run build
         env:

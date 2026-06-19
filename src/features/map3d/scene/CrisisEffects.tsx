@@ -4,21 +4,24 @@ import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { FranceGridSnapshot } from "@/game/network/networkTypes";
+import { getNodeOutageVisual } from "@/features/map3d/scene/nodeOutageVisuals";
 
 interface CrisisEffectsProps {
   snapshot: FranceGridSnapshot;
+  ringSegments?: number;
 }
 
 const ALERT_RING_Y = 0.13;
 const ALERT_RING_INNER_RADIUS = 0.2;
 const ALERT_RING_OUTER_RADIUS = 0.27;
+const NODE_OUTAGE_RING_Y = 0.145;
 
-export function CrisisEffects({ snapshot }: CrisisEffectsProps) {
+export function CrisisEffects({ snapshot, ringSegments = 40 }: CrisisEffectsProps) {
   const groupRef = useRef<THREE.Group>(null);
 
   const hotspots = useMemo(() => {
-    return snapshot.lines
-      .filter((line) => line.status === "critical" || line.status === "overloaded")
+    const lineHotspots = snapshot.lines
+      .filter((line) => line.tripped || line.status === "offline" || line.status === "critical" || line.status === "overloaded")
       .map((line) => {
         const from = snapshot.nodes.find((node) => node.id === line.fromNodeId);
         const to = snapshot.nodes.find((node) => node.id === line.toNodeId);
@@ -27,10 +30,31 @@ export function CrisisEffects({ snapshot }: CrisisEffectsProps) {
           id: line.id,
           x: (from.position[0] + to.position[0]) / 2,
           z: (from.position[2] + to.position[2]) / 2,
-          critical: line.status === "critical",
+          y: ALERT_RING_Y,
+          inner: ALERT_RING_INNER_RADIUS,
+          outer: ALERT_RING_OUTER_RADIUS,
+          color: line.tripped || line.status === "offline" || line.status === "critical" ? "#ff2f5f" : "#ff7a1a",
         };
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);
+
+    const nodeHotspots = snapshot.nodes.flatMap((node) => {
+      const outage = getNodeOutageVisual(node);
+      if (outage.level === "normal") return [];
+
+      const radius = outage.level === "blackout" ? 0.31 : outage.level === "partial" ? 0.28 : 0.25;
+      return [{
+        id: `node-${node.id}`,
+        x: node.position[0],
+        z: node.position[2],
+        y: NODE_OUTAGE_RING_Y,
+        inner: radius,
+        outer: radius + 0.035,
+        color: outage.alertColor,
+      }];
+    });
+
+    return [...lineHotspots, ...nodeHotspots];
   }, [snapshot.lines, snapshot.nodes]);
 
   useFrame(({ clock }) => {
@@ -48,10 +72,10 @@ export function CrisisEffects({ snapshot }: CrisisEffectsProps) {
   return (
     <group ref={groupRef}>
       {hotspots.map((spot) => (
-        <mesh key={spot.id} position={[spot.x, ALERT_RING_Y, spot.z]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[ALERT_RING_INNER_RADIUS, ALERT_RING_OUTER_RADIUS, 40]} />
+        <mesh key={spot.id} position={[spot.x, spot.y, spot.z]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[spot.inner, spot.outer, ringSegments]} />
           <meshBasicMaterial
-            color={spot.critical ? "#ff2f5f" : "#ff7a1a"}
+            color={spot.color}
             transparent
             opacity={0.36}
             depthWrite={false}

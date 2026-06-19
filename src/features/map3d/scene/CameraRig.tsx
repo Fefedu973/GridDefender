@@ -4,6 +4,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
 import type { FranceGridSnapshot, SelectedEntity } from "@/game/network/networkTypes";
+import type { AIJob } from "@/game/types";
 
 interface OrbitLike {
   target: THREE.Vector3;
@@ -12,11 +13,12 @@ interface OrbitLike {
 
 interface CameraRigProps {
   snapshot: FranceGridSnapshot;
+  aiJobs: Pick<AIJob, "id" | "assignedNodeId" | "externalized">[];
   selectedEntity?: SelectedEntity;
   center: THREE.Vector3;
 }
 
-export function CameraRig({ snapshot, selectedEntity, center }: CameraRigProps) {
+export function CameraRig({ snapshot, aiJobs, selectedEntity, center }: CameraRigProps) {
   const controls = useThree((state) => state.controls) as OrbitLike | null;
   const desired = useRef(new THREE.Vector3());
 
@@ -31,7 +33,8 @@ export function CameraRig({ snapshot, selectedEntity, center }: CameraRigProps) 
     }
 
     if (selectedEntity?.kind === "workload") {
-      const datacenter = snapshot.nodes.find((item) => item.id === "paris-saclay-ai");
+      const job = aiJobs.find((item) => item.id === selectedEntity.id);
+      const datacenter = snapshot.nodes.find((item) => item.id === job?.assignedNodeId);
       if (datacenter) desired.current.set(datacenter.position[0], 0.2, datacenter.position[2]);
     }
 

@@ -5,6 +5,15 @@ import { memo, useMemo, useRef } from "react";
 import type { ReactNode } from "react";
 import * as THREE from "three";
 import type { GridNode } from "@/game/network/networkTypes";
+import { getNodeOutageVisual, type NodeOutageVisual } from "@/features/map3d/scene/nodeOutageVisuals";
+import {
+  datacenterModelProfile,
+  evChargeFillLevel,
+  factoryVisualProfile,
+  nodeActivityRatio,
+  productionSteamVisualProfile,
+  solarPanelEmissiveScale,
+} from "@/features/map3d/scene/nodeModelVisuals";
 import { nodeKindColor } from "@/features/map3d/scene/visuals";
 
 /* ================================================================== */
@@ -20,6 +29,10 @@ function seedFromId(id: string) {
   let hash = 0;
   for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
   return (hash % 997) / 997;
+}
+
+function clamp01(value: number) {
+  return Math.max(0, Math.min(1, value));
 }
 
 function asBasic(child: THREE.Object3D) {
@@ -239,6 +252,7 @@ function ChargeFill({
   baseY,
   color,
   speed,
+  level,
   seed = 0,
   position = [0, 0, 0],
 }: {
@@ -248,20 +262,22 @@ function ChargeFill({
   baseY: number;
   color: string;
   speed: number;
+  level?: number;
   seed?: number;
   position?: Vec3;
 }) {
   const ref = useRef<THREE.Mesh>(null);
+  const initialFill = Math.max(0.001, clamp01(level ?? 0.5));
   useFrame(({ clock }) => {
     const mesh = ref.current;
     if (!mesh) return;
-    const fill = (clock.elapsedTime * speed + seed) % 1;
+    const fill = level === undefined ? (clock.elapsedTime * speed + seed) % 1 : Math.max(0.001, clamp01(level));
     mesh.scale.y = Math.max(0.001, fill);
     mesh.position.y = baseY + (height * fill) / 2;
     (mesh.material as THREE.MeshBasicMaterial).opacity = 0.4 + (1 - Math.abs(fill - 0.5) * 2) * 0.5;
   });
   return (
-    <mesh ref={ref} position={[position[0], baseY, position[2]]}>
+    <mesh ref={ref} position={[position[0], baseY + (height * initialFill) / 2, position[2]]} scale={[1, initialFill, 1]}>
       <boxGeometry args={[width, height, depth]} />
       <meshBasicMaterial color={color} transparent opacity={0.6} depthWrite={false} />
     </mesh>
@@ -272,7 +288,9 @@ function ChargeFill({
 /* Per-kind stylised infrastructure models (a few primitives each).    */
 /* ================================================================== */
 
-function CoolingTower({ color, seed }: { color: string; seed: number }) {
+function CoolingTower({ activity, color, seed }: { activity: number; color: string; seed: number }) {
+  const steam = productionSteamVisualProfile(activity);
+
   return (
     <group>
       <mesh position={[0, 0.025, 0]} receiveShadow>
@@ -295,7 +313,7 @@ function CoolingTower({ color, seed }: { color: string; seed: number }) {
         </group>
       ))}
       {/* Reactor rims softly breathe to read as an active core. */}
-      <Pulse speed={1.4} min={0.4} max={0.85} seed={seed}>
+      <Pulse speed={0.85 + activity * 0.9} min={0.22} max={steam.pulseMax} seed={seed}>
         {[-0.12, 0.12].map((x) => (
           <mesh key={x} position={[x, 0.39, 0]} rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[0.103, 0.008, 8, 28]} />
@@ -313,8 +331,8 @@ function CoolingTower({ color, seed }: { color: string; seed: number }) {
         rise={0.34}
         radius={0.058}
         color="#dfffee"
-        opacity={0.34}
-        speed={0.22}
+        opacity={steam.opacity}
+        speed={steam.speed}
         seed={seed}
       />
       <mesh position={[0, 0.12, -0.12]} castShadow>
@@ -325,7 +343,11 @@ function CoolingTower({ color, seed }: { color: string; seed: number }) {
   );
 }
 
-function DataCenter({ color, compact, seed }: { color: string; compact: boolean; seed: number }) {
+function DataCenter({ color, compact, seed, activity }: { color: string; compact: boolean; seed: number; activity: number }) {
+  const ledSpeed = 1.1 + activity * 2.1;
+  const ledMax = 0.35 + activity * 0.6;
+  const fanSpeed = 0.5 + activity * 2.2;
+
   if (compact) {
     return (
       <group>
@@ -342,7 +364,7 @@ function DataCenter({ color, compact, seed }: { color: string; compact: boolean;
           <meshStandardMaterial color="#061923" emissive={color} emissiveIntensity={0.26} metalness={0.48} roughness={0.35} />
         </mesh>
         {/* Server diodes flicker like live compute. */}
-        <Twinkle speed={2.2} min={0.2} max={0.95} seed={seed}>
+        <Twinkle speed={ledSpeed} min={0.12} max={ledMax} seed={seed}>
           {[0.075, 0.11, 0.145].map((y) => (
             <mesh key={y} position={[-0.03, y, 0.064]}>
               <boxGeometry args={[0.09, 0.01, 0.008]} />
@@ -381,7 +403,7 @@ function DataCenter({ color, compact, seed }: { color: string; compact: boolean;
         </mesh>
       ))}
       {/* Rack status LEDs scan to read as live compute load. */}
-      <Twinkle speed={2}  min={0.16} max={0.85} seed={seed}>
+      <Twinkle speed={ledSpeed}  min={0.12} max={ledMax} seed={seed}>
         {[-0.12, 0, 0.12].flatMap((x) =>
           [0.08, 0.12, 0.16].map((y) => (
             <mesh key={`${x}-${y}`} position={[x, y, 0.112]}>
@@ -394,7 +416,7 @@ function DataCenter({ color, compact, seed }: { color: string; compact: boolean;
       {/* Slow rooftop cooling fan — parent lays it flat, Spinner turns it
           around the disc normal (Z) so the blades sweep in-plane. */}
       <group position={[0, 0.247, -0.05]} rotation={[Math.PI / 2, 0, 0]}>
-        <Spinner speed={1.6} axis="z">
+        <Spinner speed={fanSpeed} axis="z">
           {[0, 1, 2].map((i) => (
             <mesh key={i} rotation={[0, 0, (i / 3) * Math.PI * 2]}>
               <boxGeometry args={[0.09, 0.014, 0.004]} />
@@ -411,8 +433,12 @@ function DataCenter({ color, compact, seed }: { color: string; compact: boolean;
   );
 }
 
-function BatteryStack({ color, seed }: { color: string; seed: number }) {
+function BatteryStack({ color, seed, levelPct }: { color: string; seed: number; levelPct: number }) {
   const cells: number[] = [-0.15, 0, 0.15];
+  const level = clamp01(levelPct / 100);
+  const cellLevel = (index: number) => clamp01(level * cells.length - index);
+  const fillColor = level < 0.16 ? "#ff2f5f" : color;
+
   return (
     <group>
       <mesh position={[0, 0.025, 0]}>
@@ -435,8 +461,9 @@ function BatteryStack({ color, seed }: { color: string; seed: number }) {
             height={0.2}
             depth={0.006}
             baseY={0.06}
-            color={color}
+            color={fillColor}
             speed={0.16}
+            level={cellLevel(i)}
             seed={seed + i * 0.22}
             position={[0, 0, 0.088]}
           />
@@ -450,12 +477,13 @@ function BatteryStack({ color, seed }: { color: string; seed: number }) {
   );
 }
 
-function SolarArray({ color, seed }: { color: string; seed: number }) {
+function SolarArray({ activity, color, seed }: { activity: number; color: string; seed: number }) {
   const trackerRef = useRef<THREE.Group>(null);
+  const emissiveScale = solarPanelEmissiveScale(activity);
   useFrame(({ clock }) => {
     if (trackerRef.current) {
       // Gentle sun-tracking sway shared by every panel.
-      trackerRef.current.rotation.x = Math.sin(clock.elapsedTime * 0.32 + seed * 6.2831) * 0.16;
+      trackerRef.current.rotation.x = Math.sin(clock.elapsedTime * 0.22 + seed * 6.2831) * (0.04 + activity * 0.12);
     }
   });
   return (
@@ -469,11 +497,11 @@ function SolarArray({ color, seed }: { color: string; seed: number }) {
           <group key={x} position={[x, 0.1, 0]} rotation={[-Math.PI / 5, 0, 0]}>
             <mesh castShadow>
               <boxGeometry args={[0.13, 0.014, 0.2]} />
-              <meshStandardMaterial color="#171307" emissive={color} emissiveIntensity={0.48} metalness={0.5} roughness={0.28} />
+              <meshStandardMaterial color="#171307" emissive={color} emissiveIntensity={0.18 + emissiveScale * 0.52} metalness={0.5} roughness={0.28} />
             </mesh>
             <mesh position={[0, 0.009, 0]}>
               <boxGeometry args={[0.012, 0.006, 0.19]} />
-              <meshBasicMaterial color={color} transparent opacity={0.42} />
+              <meshBasicMaterial color={color} transparent opacity={0.12 + emissiveScale * 0.34} />
             </mesh>
             <mesh position={[0, -0.06, 0.05]} rotation={[Math.PI / 5, 0, 0]}>
               <cylinderGeometry args={[0.008, 0.008, 0.13, 6]} />
@@ -486,11 +514,12 @@ function SolarArray({ color, seed }: { color: string; seed: number }) {
   );
 }
 
-function WindTurbine({ color, seed }: { color: string; seed: number }) {
+function WindTurbine({ color, seed, activity }: { color: string; seed: number; activity: number }) {
   const bladesRef = useRef<THREE.Group>(null);
+  const rotorSpeed = 0.15 + activity * 2.4;
 
   useFrame((_, delta) => {
-    if (bladesRef.current) bladesRef.current.rotation.z += delta * 1.05;
+    if (bladesRef.current) bladesRef.current.rotation.z += delta * rotorSpeed;
   });
 
   return (
@@ -528,32 +557,43 @@ function WindTurbine({ color, seed }: { color: string; seed: number }) {
   );
 }
 
-function Hospital({ color, seed }: { color: string; seed: number }) {
+function Hospital({ color, seed, outage }: { color: string; seed: number; outage: NodeOutageVisual }) {
+  const buildingGlow = outage.emissiveScale;
+  const emergencyColor = outage.level === "normal" ? "#ffffff" : outage.alertColor;
+
   return (
     <group>
       <mesh position={[0, 0.03, 0]}>
         <boxGeometry args={[0.4, 0.06, 0.34]} />
-        <meshStandardMaterial color="#190709" emissive={color} emissiveIntensity={0.18} roughness={0.55} />
+        <meshStandardMaterial color="#190709" emissive={color} emissiveIntensity={0.18 * buildingGlow} roughness={0.55} />
       </mesh>
       <mesh position={[0, 0.18, 0]} castShadow>
         <boxGeometry args={[0.28, 0.3, 0.22]} />
-        <meshStandardMaterial color="#2a0a0a" emissive={color} emissiveIntensity={0.36} roughness={0.42} />
+        <meshStandardMaterial color="#2a0a0a" emissive={color} emissiveIntensity={0.36 * buildingGlow} roughness={0.42} />
       </mesh>
       <mesh position={[0.16, 0.13, 0]} castShadow>
         <boxGeometry args={[0.12, 0.2, 0.18]} />
-        <meshStandardMaterial color="#22080a" emissive={color} emissiveIntensity={0.26} roughness={0.48} />
+        <meshStandardMaterial color="#22080a" emissive={color} emissiveIntensity={0.26 * buildingGlow} roughness={0.48} />
       </mesh>
       {/* The emergency cross gently glows. */}
       <Pulse speed={1.8} min={0.55} max={1} seed={seed}>
         <mesh position={[0, 0.33, 0.112]}>
           <boxGeometry args={[0.13, 0.04, 0.012]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={1} />
+          <meshBasicMaterial color={emergencyColor} transparent opacity={1} />
         </mesh>
         <mesh position={[0, 0.33, 0.112]}>
           <boxGeometry args={[0.04, 0.13, 0.012]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={1} />
+          <meshBasicMaterial color={emergencyColor} transparent opacity={1} />
         </mesh>
       </Pulse>
+      {outage.emergencyOpacity > 0 && (
+        <Pulse speed={3.2} min={0.12} max={outage.emergencyOpacity} scale={[0.8, 1.35]} seed={seed + 0.9} position={[0.13, 0.36, 0.095]}>
+          <mesh>
+            <sphereGeometry args={[0.026, 10, 8]} />
+            <meshBasicMaterial color={outage.alertColor} transparent opacity={outage.emergencyOpacity} />
+          </mesh>
+        </Pulse>
+      )}
       {/* Rooftop helipad beacon blink. */}
       <Pulse speed={4.6} min={0.1} max={1} scale={[0.6, 1.3]} seed={seed + 0.3} position={[-0.1, 0.345, 0.06]}>
         <mesh>
@@ -565,7 +605,7 @@ function Hospital({ color, seed }: { color: string; seed: number }) {
   );
 }
 
-function CityCluster({ color, seed }: { color: string; seed: number }) {
+function CityCluster({ color, seed, outage }: { color: string; seed: number; outage: NodeOutageVisual }) {
   const buildings = [
     { h: 0.34, x: -0.15, z: 0.05, w: 0.09 },
     { h: 0.24, x: -0.03, z: -0.1, w: 0.08 },
@@ -588,19 +628,24 @@ function CityCluster({ color, seed }: { color: string; seed: number }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
+  const buildingColor = outage.level === "blackout" ? "#040812" : "#0a1830";
+  const buildingGlow = 0.34 * outage.emissiveScale;
+  const windowMax = Math.max(0.045, 0.95 * outage.windowPower);
+  const windowMin = Math.min(0.08, windowMax * 0.45);
+
   return (
     <group>
       <mesh position={[0.02, 0.015, 0.02]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.27, 32]} />
-        <meshBasicMaterial color={color} transparent opacity={0.12} />
+        <meshBasicMaterial color={outage.level === "normal" ? color : outage.alertColor} transparent opacity={0.08 + outage.emergencyOpacity * 0.11} />
       </mesh>
       {buildings.map((building, i) => (
         <mesh key={i} position={[building.x, building.h / 2, building.z]} castShadow>
           <boxGeometry args={[building.w, building.h, building.w]} />
-          <meshStandardMaterial color="#0a1830" emissive={color} emissiveIntensity={0.34} roughness={0.52} />
+          <meshStandardMaterial color={buildingColor} emissive={color} emissiveIntensity={buildingGlow} roughness={0.52} />
         </mesh>
       ))}
-      <Twinkle speed={1.5} min={0.08} max={0.95} seed={seed}>
+      <Twinkle speed={1.5} min={windowMin} max={windowMax} seed={seed}>
         {windows.map((win) => (
           <mesh key={win.key} position={[win.x, win.y, win.z]}>
             <boxGeometry args={[win.w, win.w * 0.7, 0.006]} />
@@ -614,11 +659,23 @@ function CityCluster({ color, seed }: { color: string; seed: number }) {
           <meshBasicMaterial color={color} transparent opacity={0.38} />
         </mesh>
       ))}
+      {outage.emergencyOpacity > 0 && (
+        <Pulse speed={3.8} min={0.08} max={outage.emergencyOpacity} scale={[0.75, 1.45]} seed={seed + 0.55}>
+          {buildings.slice(0, 3).map((building, i) => (
+            <mesh key={`emergency-${i}`} position={[building.x, building.h + 0.035, building.z]}>
+              <sphereGeometry args={[0.014, 8, 6]} />
+              <meshBasicMaterial color={outage.alertColor} transparent opacity={outage.emergencyOpacity} />
+            </mesh>
+          ))}
+        </Pulse>
+      )}
     </group>
   );
 }
 
-function Factory({ color, seed }: { color: string; seed: number }) {
+function Factory({ activity, color, seed }: { activity: number; color: string; seed: number }) {
+  const profile = factoryVisualProfile(activity);
+
   return (
     <group>
       <mesh position={[0, 0.03, 0]}>
@@ -634,7 +691,7 @@ function Factory({ color, seed }: { color: string; seed: number }) {
         <meshStandardMaterial color="#161e28" emissive={color} emissiveIntensity={0.22} roughness={0.55} />
       </mesh>
       {/* Furnace vent glowing through the wall. */}
-      <Pulse speed={1.1} min={0.25} max={0.7} seed={seed} position={[0.1, 0.12, 0.111]}>
+      <Pulse speed={0.7 + activity * 0.9} min={0.1} max={profile.furnaceMax} seed={seed} position={[0.1, 0.12, 0.111]}>
         <mesh>
           <boxGeometry args={[0.08, 0.08, 0.006]} />
           <meshBasicMaterial color="#ff8a3a" transparent opacity={0.5} />
@@ -656,8 +713,8 @@ function Factory({ color, seed }: { color: string; seed: number }) {
         rise={0.3}
         radius={0.045}
         color="#9fb0bd"
-        opacity={0.26}
-        speed={0.2}
+        opacity={profile.smokeOpacity}
+        speed={profile.smokeSpeed}
         seed={seed}
       />
     </group>
@@ -698,13 +755,14 @@ function Pylon({ color, seed }: { color: string; seed: number }) {
   );
 }
 
-function ChargeStation({ color, seed }: { color: string; seed: number }) {
+function ChargeStation({ activity, color, seed }: { activity: number; color: string; seed: number }) {
   const segments = [0.252, 0.266, 0.28, 0.294];
   const fillRef = useRef<THREE.Group>(null);
+  const baseFill = evChargeFillLevel(activity);
   useFrame(({ clock }) => {
     const g = fillRef.current;
     if (!g) return;
-    const fill = (clock.elapsedTime * 0.35 + seed) % 1;
+    const fill = clamp01(baseFill + Math.sin(clock.elapsedTime * 1.4 + seed * 6.2831) * 0.045);
     g.children.forEach((child, i) => {
       const lit = fill > i / segments.length ? 1 : 0.12;
       const material = asBasic(child);
@@ -752,39 +810,52 @@ function ChargeStation({ color, seed }: { color: string; seed: number }) {
 function NodeStructure({ node }: { node: GridNode }) {
   const color = nodeKindColor(node.kind);
   const seed = seedFromId(node.id);
+  const outage = getNodeOutageVisual(node);
+  const activity = nodeActivityRatio(node);
+
   switch (node.kind) {
     case "nuclear":
-      return <CoolingTower color={color} seed={seed} />;
-    case "datacenter":
+      return <CoolingTower activity={activity} color={color} seed={seed} />;
+    case "datacenter": {
+      const datacenterProfile = datacenterModelProfile(node);
       return (
-        <group scale={node.id === "grenoble-ai-edge" ? 0.86 : 0.9}>
-          <DataCenter color={color} compact={node.id === "grenoble-ai-edge"} seed={seed} />
+        <group scale={datacenterProfile.scale}>
+          <DataCenter color={color} compact={datacenterProfile.compact} seed={seed} activity={activity} />
         </group>
       );
+    }
     case "battery":
-      return <BatteryStack color={color} seed={seed} />;
+      return <BatteryStack color={color} seed={seed} levelPct={node.storageLevelPct ?? 50} />;
     case "solar":
-      return <SolarArray color={color} seed={seed} />;
+      return <SolarArray activity={activity} color={color} seed={seed} />;
     case "wind":
-      return <WindTurbine color={color} seed={seed} />;
+      return <WindTurbine color={color} seed={seed} activity={activity} />;
     case "hospital":
-      return <Hospital color={color} seed={seed} />;
+      return <Hospital color={color} seed={seed} outage={outage} />;
     case "city":
-      return <CityCluster color={color} seed={seed} />;
+      return <CityCluster color={color} seed={seed} outage={outage} />;
     case "industry":
-      return <Factory color={color} seed={seed} />;
+      return <Factory activity={activity} color={color} seed={seed} />;
     case "interconnect":
       return <Pylon color={color} seed={seed} />;
     case "ev":
-      return <ChargeStation color={color} seed={seed} />;
+      return <ChargeStation activity={activity} color={color} seed={seed} />;
     default:
-      return <CityCluster color={color} seed={seed} />;
+      return <CityCluster color={color} seed={seed} outage={outage} />;
   }
 }
 
 export const MemoNodeStructure = memo(
   NodeStructure,
-  (prev, next) => prev.node.id === next.node.id && prev.node.kind === next.node.kind,
+  (prev, next) =>
+    prev.node.id === next.node.id &&
+    prev.node.kind === next.node.kind &&
+    prev.node.status === next.node.status &&
+    prev.node.productionMw === next.node.productionMw &&
+    prev.node.demandMw === next.node.demandMw &&
+    prev.node.servedDemandMw === next.node.servedDemandMw &&
+    prev.node.servedProductionMw === next.node.servedProductionMw &&
+    prev.node.storageLevelPct === next.node.storageLevelPct,
 );
 
 MemoNodeStructure.displayName = "MemoNodeStructure";

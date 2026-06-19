@@ -1,27 +1,56 @@
 "use client";
 
-import { Activity, Pause, Play, RotateCcw } from "lucide-react";
+import { Activity, Pause, Play, RotateCcw, Volume2, VolumeX } from "lucide-react";
+import type { ReactNode } from "react";
+import { getMapDefinition } from "@/content/maps/mapRegistry";
 import { Chip } from "@/features/hud/hudKit";
+import { getHudVisibilityProfile, type HudTopBarChip } from "@/features/hud/hudVisibility";
 import { useGameStore } from "@/store/gameStore";
-import type { SimulationSpeed } from "@/store/gameStore";
+import { getAvailableViewLayers, renderQualities, simulationSpeeds } from "@/store/gamePreferences";
 import { formatClock } from "@/lib/format";
-
-const simulationSpeeds: SimulationSpeed[] = [0.25, 0.5, 1, 2, 4];
 
 export function CommandTopBar() {
   const game = useGameStore((state) => state.game);
   const phase = useGameStore((state) => state.phase);
+  const demoMode = useGameStore((state) => state.demoMode);
   const speed = useGameStore((state) => state.speed);
+  const viewLayer = useGameStore((state) => state.viewLayer);
+  const renderQuality = useGameStore((state) => state.renderQuality);
+  const audioEnabled = useGameStore((state) => state.audioEnabled);
   const setSpeed = useGameStore((state) => state.setSpeed);
+  const setViewLayer = useGameStore((state) => state.setViewLayer);
+  const setRenderQuality = useGameStore((state) => state.setRenderQuality);
+  const toggleAudio = useGameStore((state) => state.toggleAudio);
   const togglePause = useGameStore((state) => state.togglePause);
   const resetMission = useGameStore((state) => state.resetMission);
   const m = game.metrics;
+  const telemetry = game.scenario.telemetry;
+  const profile = getHudVisibilityProfile(game.scenario);
+  const availableViewLayers = getAvailableViewLayers(getMapDefinition(game.scenario.mapId));
   const phaseBadgeClass =
-    phase === "paused"
+    demoMode
+      ? "border-[var(--c-green)]/35 bg-[var(--c-green)]/10 text-[var(--c-green)]"
+      : phase === "paused"
       ? "border-zinc-500/30 bg-zinc-500/10 text-zinc-300"
       : phase === "ended"
         ? "border-white/15 bg-white/5 text-zinc-300"
         : "border-[var(--c-green)]/25 bg-[var(--c-green)]/10 text-[var(--c-green)]";
+
+  const chipRenderers: Record<HudTopBarChip, ReactNode> = {
+    stability: <Chip label="Stabilité" value={`${Math.round(m.stability)}%`} tone={m.stability < 45 ? "danger" : "good"} />,
+    aiProductivity: <Chip label="IA" value={`${Math.round(m.aiProductivity)}%`} tone="cyan" />,
+    carbon: <Chip label="CO₂" value={`${Math.round(m.carbon)}%`} />,
+    sovereignty: <Chip label="Souv." value={`${Math.round(m.sovereignty)}%`} />,
+    reserve: <Chip label="Réserve" value={`${Math.round(m.reserveMw)} MW`} tone={m.reserveMw < 0 ? "danger" : "default"} />,
+    capacity: (
+      <Chip
+        label="Capacité"
+        value={`${Math.round(game.commandCapacity)}/${game.commandCapacityMax}`}
+        tone={game.commandCapacity < 18 ? "danger" : "cyan"}
+      />
+    ),
+    athena: <Chip label="ATHENA" value={`${game.athenaTokens}`} tone={game.athenaTokens > 0 ? "cyan" : "default"} />,
+  };
 
   return (
     <header className="glass-strong pointer-events-auto flex items-center gap-3 rounded-md px-3.5 py-2">
@@ -48,14 +77,47 @@ export function CommandTopBar() {
 
       {/* Key metrics */}
       <div className="ml-1 hidden items-center gap-2 lg:flex">
-        <Chip label="Stabilité" value={`${Math.round(m.stability)}%`} tone={m.stability < 45 ? "danger" : "good"} />
-        <Chip label="IA" value={`${Math.round(m.aiProductivity)}%`} tone="cyan" />
-        <Chip label="CO₂" value={`${Math.round(m.carbon)}%`} />
-        <Chip label="Souv." value={`${Math.round(m.sovereignty)}%`} />
-        <Chip label="Réserve" value={`${Math.round(m.reserveMw)} MW`} tone={m.reserveMw < 0 ? "danger" : "default"} />
+        {profile.topBarChips.map((chip) => (
+          <span key={chip}>{chipRenderers[chip]}</span>
+        ))}
+        {telemetry && telemetry.mode !== "nominal" && (
+          <Chip label="Télémétrie" value={telemetry.mode === "blackout" ? "NOIRE" : "PARTIELLE"} tone="danger" />
+        )}
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        <div className="hidden overflow-hidden rounded border border-[var(--glass-border-soft)] bg-white/[0.03] xl:flex">
+          {availableViewLayers.map((layer) => (
+            <button
+              key={layer}
+              type="button"
+              title={`Couche ${layer}`}
+              onClick={() => setViewLayer(layer)}
+              className={`hud-eyebrow h-8 px-2.5 text-[9px] transition ${
+                viewLayer === layer ? "bg-[var(--c-green)] !text-black" : "!text-zinc-300 hover:bg-white/10"
+              }`}
+            >
+              {layer}
+            </button>
+          ))}
+        </div>
+
+        <div className="hidden overflow-hidden rounded border border-[var(--glass-border-soft)] bg-white/[0.03] 2xl:flex">
+          {renderQualities.map((quality) => (
+            <button
+              key={quality}
+              type="button"
+              title={`Qualité ${quality}`}
+              onClick={() => setRenderQuality(quality)}
+              className={`hud-eyebrow h-8 px-2 text-[9px] transition ${
+                renderQuality === quality ? "bg-[var(--c-violet)] !text-black" : "!text-zinc-300 hover:bg-white/10"
+              }`}
+            >
+              {quality}
+            </button>
+          ))}
+        </div>
+
         {/* Speed */}
         <div className="flex overflow-hidden rounded border border-[var(--glass-border-soft)] bg-white/[0.03]">
           {simulationSpeeds.map((value) => (
@@ -72,6 +134,15 @@ export function CommandTopBar() {
             </button>
           ))}
         </div>
+
+        <button
+          type="button"
+          title={audioEnabled ? "Couper audio" : "Activer audio"}
+          onClick={toggleAudio}
+          className="grid h-9 w-9 place-items-center rounded border border-[var(--glass-border-soft)] bg-white/[0.03] text-white transition hover:border-[var(--c-green)]/50 hover:bg-[var(--c-green)]/10"
+        >
+          {audioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+        </button>
 
         <button
           type="button"
@@ -99,7 +170,7 @@ export function CommandTopBar() {
           ) : (
             <span className={`h-1.5 w-1.5 rounded-full bg-current ${phase === "running" ? "animate-pulse" : ""}`} />
           )}
-          {phase === "paused" ? "PAUSE" : phase === "ended" ? "TERMINÉE" : "EN LIGNE"}
+          {demoMode ? "DÉMO ATHENA" : phase === "paused" ? "PAUSE" : phase === "ended" ? "TERMINÉE" : "EN LIGNE"}
         </div>
       </div>
     </header>
