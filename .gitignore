@@ -44,3 +44,6 @@ tmp_sim/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Scratch dir for geo data re-baking (scripts/build-europe-geo.mjs)
+/.tmp_geo

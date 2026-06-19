@@ -82,11 +82,11 @@ export const mapRegistry: MapDefinition[] = [
   {
     id: "europe-2030",
     name: "Europe 2030",
-    terrain: "france",
+    terrain: "europe",
     description: "Finale avec interconnexions européennes, prix carbone et solidarité transfrontalière.",
-    cameraPreset: "national",
+    cameraPreset: "europe",
     modelScale: 0.98,
-    environment: "storm",
+    environment: "command-night",
     availableLayers: ["grid", "ai", "carbon"],
   },
   {

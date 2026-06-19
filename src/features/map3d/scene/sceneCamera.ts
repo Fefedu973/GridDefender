@@ -62,6 +62,21 @@ export function getSceneCameraConfig(
     };
   }
 
+  if (preset === "europe") {
+    // Pull back high and wide so the French hero sits inside the ghosted
+    // continent and the cross-border interconnectors stay in frame.
+    return {
+      autoRotateSpeed: 0.14,
+      fov: 46,
+      maxDistance: 24,
+      maxPolarAngle: 1.16,
+      minDistance: 7,
+      minPolarAngle: 0.32,
+      position: [FRANCE_BOUNDS.centerX + 0.4, 10.6, FRANCE_BOUNDS.centerZ + 12.8],
+      target: [FRANCE_BOUNDS.centerX + 0.3, 0, FRANCE_BOUNDS.centerZ - 0.6],
+    };
+  }
+
   if (preset === "regional") {
     const height = clamp(4.6 + center.span * 0.35, 5.2, 6.5);
     const distance = clamp(5.1 + center.span * 0.38, 5.8, 8.4);

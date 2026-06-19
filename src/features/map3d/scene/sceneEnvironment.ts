@@ -29,6 +29,24 @@ function missionProgress(input: SceneEnvironmentInput) {
 }
 
 export function getSceneEnvironment(input: SceneEnvironmentInput): SceneEnvironment {
+  const base = computeSceneEnvironment(input);
+
+  // The Europe finale frames a whole continent, so the standard fog would eat
+  // the neighbouring countries. Push it far out and drop the rain regardless of
+  // the underlying weather branch.
+  if (input.map?.cameraPreset === "europe") {
+    return {
+      ...base,
+      fogNear: Math.max(base.fogNear, 15),
+      fogFar: Math.max(base.fogFar, 38),
+      rain: false,
+    };
+  }
+
+  return base;
+}
+
+function computeSceneEnvironment(input: SceneEnvironmentInput): SceneEnvironment {
   const progress = missionProgress(input);
   const storm = input.solarDrop || input.map?.environment === "storm";
   const close = input.map?.cameraPreset === "close";

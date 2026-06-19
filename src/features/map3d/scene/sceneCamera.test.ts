@@ -32,6 +32,15 @@ test("regional camera frames the active node bounds instead of the whole country
   assert.ok(west.maxDistance < 13);
 });
 
+test("europe camera pulls back wider and higher than the national framing", () => {
+  const europe = getSceneCameraConfig({ cameraPreset: "europe" }, westernNodes);
+  const national = getSceneCameraConfig({ cameraPreset: "national" }, westernNodes);
+
+  assert.ok(europe.maxDistance > national.maxDistance);
+  assert.ok(europe.position[1] > national.position[1]);
+  assert.equal(europe.fov, 46);
+});
+
 test("close camera uses the tightest orbit constraints for demo maps", () => {
   const close = getSceneCameraConfig({ cameraPreset: "close" }, westernNodes);
   const regional = getSceneCameraConfig({ cameraPreset: "regional" }, westernNodes);

@@ -32,3 +32,9 @@ test("map definitions own the active node and line topology", () => {
 test("unknown map ids fall back to the national map definition", () => {
   assert.equal(getMapDefinition("unknown-map").id, "france-national");
 });
+
+test("the europe finale uses its dedicated continent terrain and wide camera", () => {
+  const europe = getMapDefinition("europe-2030");
+  assert.equal(europe.terrain, "europe");
+  assert.equal(europe.cameraPreset, "europe");
+});
