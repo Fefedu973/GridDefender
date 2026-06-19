@@ -100,8 +100,7 @@ test("mission debrief prioritizes critical continuity before softer advice", () 
     actions: [action("thermal_backup"), action("repair_line")],
   });
 
-  assert.equal(debrief.recommendation, "Priorité prochaine : protéger les noeuds critiques avant tout arbitrage coût ou souveraineté.");
+  assert.equal(debrief.recommendation, "Priorité prochaine : protéger les nœuds critiques avant tout arbitrage coût ou souveraineté.");
   assert.ok(debrief.watchItems.includes("Cascade de protections"));
   assert.ok(debrief.watchItems.includes("Énergie non servie"));
 });
-

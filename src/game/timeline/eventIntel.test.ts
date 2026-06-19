@@ -62,7 +62,7 @@ test("blackout telemetry narrows forecast horizon and changes uncertain labels",
   const forecast = getTimelineEventIntel(scenario, hiddenEvent, hiddenEvent.minute - 5, []);
 
   assert.equal(hidden.level, "hidden");
-  assert.equal(hidden.title, "Telemetrie noire");
+  assert.equal(hidden.title, "Télémétrie noire");
   assert.equal(forecast.level, "forecast");
-  assert.equal(forecast.title, "Incident fantome probable");
+  assert.equal(forecast.title, "Incident fantôme probable");
 });
